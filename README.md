@@ -261,37 +261,9 @@ Uses modern JavaScript async/await for clean, readable asynchronous code instead
 
 ---
 
-## 📖 For Viva/Demo
-
-### Key Points to Explain:
-
-1. **File System Abstraction**: How the OS provides a logical view of physical storage
-2. **System Call Mapping**: How Node.js `fs` functions map to OS system calls
-3. **Atomic Operations**: Why `rename()` is preferred over copy+delete
-4. **Error Codes**: What EACCES, ENOENT, EBUSY mean
-5. **Path Resolution**: Difference between relative and absolute paths
-6. **Directory Structure**: How hierarchical file systems work
-
-### Demo Flow:
-1. Show the code structure and explain each module
-2. Create test files with different extensions
-3. Run the organizer and show real-time output
-4. Show the organized directory structure
-5. Show the log file with timestamps
-6. Demonstrate error handling (locked file, invalid path)
-
----
-
 ## 📚 References
 
 - [Node.js File System Documentation](https://nodejs.org/api/fs.html)
 - [POSIX File System Calls](https://pubs.opengroup.org/onlinepubs/9699919799/)
 - Operating Systems Concepts by Silberschatz, Galvin, and Gagne
-
----
-
-## 👨‍💻 Author
-
-Created for Operating Systems course demonstration.
-
-**License**: MIT (Educational Use)
+  
