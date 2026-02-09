@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: file-organizer/backend
+        working-directory: backend
 
     steps:
       - uses: actions/checkout@v4
@@ -21,8 +21,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          cache-dependency-path: file-organizer/backend/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -50,7 +48,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: file-organizer/frontend
+        working-directory: frontend
 
     steps:
       - uses: actions/checkout@v4
@@ -59,8 +57,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          cache-dependency-path: file-organizer/frontend/package-lock.json
 
       - name: Install dependencies
         run: npm ci
