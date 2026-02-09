@@ -13,6 +13,7 @@ const PORT = 3001;
 
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // File categorization rules
 const CATEGORY_RULES = {
@@ -52,7 +53,17 @@ const storage = multer.diskStorage({
     }
 });
 
+
+
 const upload = multer({ storage });
+
+const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
 
 // Get all files in uploads directory
 app.get('/api/files', async (req, res) => {
@@ -71,13 +82,20 @@ app.get('/api/files', async (req, res) => {
         
         // Get files from root directory
         const rootFiles = entries.filter(entry => entry.isFile());
-        rootFiles.forEach(file => {
+        for (const file of rootFiles) {
+            const filePath = path.join(uploadDir, file.name);
+            const stats = await fs.stat(filePath);
+            
             fileList.push({
                 name: file.name,
                 category: getCategoryForFile(file.name),
-                path: path.join(uploadDir, file.name)
+                path: filePath,
+                size: formatFileSize(stats.size),
+                sizeBytes: stats.size,
+                createdAt: stats.birthtime,
+                url: `/uploads/${file.name}`
             });
-        });
+        }
         
         // Get files from subdirectories (categories)
         const directories = entries.filter(entry => entry.isDirectory());
@@ -85,13 +103,22 @@ app.get('/api/files', async (req, res) => {
             const categoryPath = path.join(uploadDir, dir.name);
             try {
                 const categoryFiles = await fs.readdir(categoryPath, { withFileTypes: true });
-                categoryFiles.filter(entry => entry.isFile()).forEach(file => {
+                const files = categoryFiles.filter(entry => entry.isFile());
+                
+                for (const file of files) {
+                    const filePath = path.join(categoryPath, file.name);
+                    const stats = await fs.stat(filePath);
+                    
                     fileList.push({
                         name: file.name,
-                        category: dir.name, // Use directory name as category
-                        path: path.join(categoryPath, file.name)
+                        category: dir.name,
+                        path: filePath,
+                        size: formatFileSize(stats.size),
+                        sizeBytes: stats.size,
+                        createdAt: stats.birthtime,
+                        url: `/uploads/${dir.name}/${file.name}`
                     });
-                });
+                }
             } catch (err) {
                 console.error(`Error reading directory ${dir.name}:`, err);
             }
@@ -119,8 +146,10 @@ app.post('/api/upload', upload.array('files'), async (req, res) => {
         const files = req.files.map(file => ({
             name: file.filename,
             category: getCategoryForFile(file.filename),
-            path: file.path
+            path: file.path,
+            url: `/uploads/${file.filename}`
         }));
+
         
         res.json({ success: true, files });
     } catch (error) {
