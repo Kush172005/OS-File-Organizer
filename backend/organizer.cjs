@@ -6,8 +6,8 @@
 
 const fs = require('fs').promises;
 const path = require('path');
-const { getCategoryForFile } = require('./rules');
-const { logOperation, printSummary, ensureDirectoryExists } = require('./utils');
+const { getCategoryForFile } = require('./rules.cjs');
+const { logOperation, printSummary, ensureDirectoryExists } = require('./utils.cjs');
 
 async function organizeFiles(targetDir) {
     console.log('----------------------------------');
@@ -91,8 +91,8 @@ async function organizeFiles(targetDir) {
 
 // CLI entry point
 if (process.argv.length < 3) {
-    console.error('Usage: node organizer.js <directory-path>');
-    console.error('Example: node organizer.js ./sandbox');
+    console.error('Usage: node organizer.cjs <directory-path>');
+    console.error('Example: node organizer.cjs ./sandbox');
     process.exit(1);
 }
 

@@ -18,3 +18,13 @@
 [2026-02-03T20:16:13.944Z] MOVED | File: setup.exe | Category: Others
 [2026-02-03T20:16:13.945Z] MOVED | File: song.mp3 | Category: Audio
 [2026-02-03T20:16:13.945Z] MOVED | File: video.mp4 | Category: Videos
+[2026-02-06T05:59:28.996Z] MOVED | File: archive.zip | Category: Others
+[2026-02-06T05:59:29.004Z] MOVED | File: code.js | Category: Others
+[2026-02-06T05:59:29.004Z] MOVED | File: document1.pdf | Category: Documents
+[2026-02-06T05:59:29.005Z] MOVED | File: document2.txt | Category: Documents
+[2026-02-06T05:59:29.005Z] MOVED | File: image1.jpg | Category: Images
+[2026-02-06T05:59:29.006Z] MOVED | File: image2.png | Category: Images
+[2026-02-06T05:59:29.006Z] MOVED | File: random.xyz | Category: Others
+[2026-02-06T05:59:29.006Z] MOVED | File: song1.mp3 | Category: Audio
+[2026-02-06T05:59:29.007Z] MOVED | File: song2.wav | Category: Audio
+[2026-02-06T05:59:29.007Z] MOVED | File: video1.mp4 | Category: Videos
