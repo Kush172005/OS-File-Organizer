@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { createPortal } from 'react-dom';
-import ImagePreviewModal from './ImagePreviewModal';
 
 const FILE_ICONS = {
   Documents: { 
@@ -86,14 +84,6 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
   const categories = Object.keys(FILE_ICONS);
   const isDeleting = deletingFile === file.name;
   const fileConfig = FILE_ICONS[file.category];
-  const [showPreview, setShowPreview] = useState(false);
-  
-  // Check if file is an image based on extension or category
-  const isImage = ['Images', 'Others'].includes(file.category) && 
-    ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp'].some(ext => file.name.toLowerCase().endsWith(ext));
-    
-  // Use the URL provided by backend
-  const imageUrl = file.url ? `http://localhost:3001${file.url}` : '';
 
   const handleMove = async (category) => {
     setShowMoveMenu(false);
@@ -104,19 +94,8 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
     <div className={`relative group ${showMoveMenu ? 'z-50' : 'z-0'}`}>
       <div className={`card p-4 transition-all duration-200 ${isDeleting ? 'opacity-40 scale-95' : 'hover:shadow-lg hover:border-gray-300 hover:-translate-y-0.5'}`}>
         {/* Icon header with gradient background */}
-        <div className={`w-full h-24 rounded-lg flex items-center justify-center mb-3 border border-gray-100 overflow-hidden ${isImage ? 'bg-gray-100' : fileConfig.bg}`}>
-          {isImage && imageUrl ? (
-            <img 
-              src={imageUrl} 
-              alt={file.name}
-              className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-              onError={(e) => {
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'block'; // Show icon if image fails
-              }}
-            />
-          ) : null}
-          <div className="text-gray-600" style={{ display: isImage && imageUrl ? 'none' : 'block' }}>
+        <div className={`w-full h-24 rounded-lg ${fileConfig.bg} flex items-center justify-center mb-3 border border-gray-100`}>
+          <div className="text-gray-600">
             {fileConfig.icon}
           </div>
         </div>
@@ -143,21 +122,6 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
             </svg>
             <span>Move</span>
           </button>
-          
-          {isImage && (
-            <button
-              onClick={() => setShowPreview(true)}
-              disabled={isDeleting}
-              className="flex-1 text-xs btn-primary disabled:opacity-50 flex items-center justify-center gap-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-              <span>View</span>
-            </button>
-          )}
-
           <button
             onClick={() => onDelete(file.name)}
             disabled={isDeleting}
@@ -215,12 +179,6 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
           </div>
         )}
       </div>
-
-      
-      {showPreview && createPortal(
-        <ImagePreviewModal file={{...file, url: imageUrl}} onClose={() => setShowPreview(false)} />,
-        document.body
-      )}
     </div>
   );
 }
