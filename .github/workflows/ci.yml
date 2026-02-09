@@ -30,7 +30,7 @@ jobs:
           node server.js &
           echo "Waiting for server on port 3001..."
           for i in $(seq 1 30); do
-            if curl -sf https://os-file-organizer-api.vercel.app > /dev/null; then
+            if curl -sf http://localhost:3001/api/categories > /dev/null; then
               echo "Server is up."
               break
             fi
@@ -40,9 +40,9 @@ jobs:
             fi
             sleep 1
           done
-          export BASE_URL=https://os-file-organizer-api.vercel.app
+          export BASE_URL=http://localhost:3001
           bash test-api.sh
-
+ add
   frontend:
     name: Frontend (build)
     runs-on: ubuntu-latest
