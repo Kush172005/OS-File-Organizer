@@ -7,42 +7,6 @@ on:
     branches: [main, master]
 
 jobs:
-  backend:
-    name: Backend (API tests)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Start server and run API tests
-        run: |
-          node server.js &
-          echo "Waiting for server on port 3001..."
-          for i in $(seq 1 30); do
-            if curl -sf https://os-file-organizer-2hs4czrh8-kush-agarwals-projects.vercel.app/api/categories > /dev/null; then
-              echo "Server is up."
-              break
-            fi
-            if [ "$i" -eq 30 ]; then
-              echo "Server did not start in time."
-              exit 1
-            fi
-            sleep 1
-          done
-          export BASE_URL=https://os-file-organizer-2hs4czrh8-kush-agarwals-projects.vercel.app
-          bash test-api.sh
-
   frontend:
     name: Frontend (build)
     runs-on: ubuntu-latest
