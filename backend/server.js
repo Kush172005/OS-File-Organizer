@@ -14,6 +14,9 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // File categorization rules
 const CATEGORY_RULES = {
     'Documents': ['.pdf', '.doc', '.docx', '.txt', '.md'],
@@ -75,7 +78,8 @@ app.get('/api/files', async (req, res) => {
             fileList.push({
                 name: file.name,
                 category: getCategoryForFile(file.name),
-                path: path.join(uploadDir, file.name)
+                path: path.join(uploadDir, file.name),
+                relativePath: file.name
             });
         });
         
@@ -89,7 +93,8 @@ app.get('/api/files', async (req, res) => {
                     fileList.push({
                         name: file.name,
                         category: dir.name, // Use directory name as category
-                        path: path.join(categoryPath, file.name)
+                        path: path.join(categoryPath, file.name),
+                        relativePath: `${dir.name}/${file.name}`
                     });
                 });
             } catch (err) {
@@ -272,6 +277,63 @@ app.delete('/api/files/:fileName', async (req, res) => {
         res.json({ success: true, message: `Deleted ${fileName}` });
     } catch (error) {
         console.error('Delete error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get file details (metadata)
+app.get('/api/files/:fileName/details', async (req, res) => {
+    try {
+        const { fileName } = req.params;
+        const uploadDir = path.join(__dirname, 'uploads');
+        
+        let filePath = null;
+        let fileCategory = null;
+        
+        // Search in root directory first
+        try {
+            const rootPath = path.join(uploadDir, fileName);
+            await fs.access(rootPath);
+            filePath = rootPath;
+            fileCategory = getCategoryForFile(fileName);
+        } catch {
+            // Not in root, search in subdirectories
+            const entries = await fs.readdir(uploadDir, { withFileTypes: true });
+            
+            for (const entry of entries) {
+                if (entry.isDirectory()) {
+                    const categoryPath = path.join(uploadDir, entry.name);
+                    try {
+                        const categoryFiles = await fs.readdir(categoryPath);
+                        if (categoryFiles.includes(fileName)) {
+                            filePath = path.join(categoryPath, fileName);
+                            fileCategory = entry.name;
+                            break;
+                        }
+                    } catch (err) {
+                        continue;
+                    }
+                }
+            }
+        }
+        
+        if (!filePath) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+        
+        const stats = await fs.stat(filePath);
+        const extension = path.extname(fileName).toLowerCase();
+        
+        res.json({
+            name: fileName,
+            category: fileCategory,
+            extension: extension,
+            size: stats.size,
+            createdAt: stats.birthtime,
+            modifiedAt: stats.mtime,
+        });
+    } catch (error) {
+        console.error('File details error:', error);
         res.status(500).json({ error: error.message });
     }
 });
