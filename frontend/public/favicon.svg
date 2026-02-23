@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="url(#bg)"/>
+  <!-- Folder icon (scaled from 24 to ~20 with offset) -->
+  <g transform="translate(6,4)" stroke="white" stroke-width="1.6" fill="none" stroke-linejoin="round">
+    <path d="M2 4v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-5L9 4H4a2 2 0 0 0-2 2z"/>
+    <path d="M6 10h6M6 13h4M6 16h5" stroke-width="1" stroke-linecap="round" opacity=".95"/>
+  </g>
+</svg>

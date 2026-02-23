@@ -4,11 +4,7 @@ function Header() {
       <div className="max-w-6xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-sm">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-              </svg>
-            </div>
+            <img src="/favicon.svg" alt="" className="w-10 h-10 rounded-xl shadow-sm flex-shrink-0" />
             <div>
               <h1 className="text-lg font-semibold text-gray-900">File Organizer</h1>
               <p className="text-xs text-gray-500">Organize files by type automatically</p>

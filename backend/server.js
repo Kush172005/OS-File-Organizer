@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs/promises';
+import { createReadStream } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
@@ -19,7 +20,7 @@ const UPLOAD_DIR = process.env.VERCEL
 app.use(cors());
 app.use(express.json());
 
-// Serve uploaded files statically
+// Serve uploaded files statically (for preview in browser)
 app.use('/uploads', express.static(UPLOAD_DIR));
 
 // File categorization rules
@@ -33,6 +34,19 @@ const CATEGORY_RULES = {
 };
 
 const DEFAULT_CATEGORY = 'Others';
+
+// Resolve path relative to UPLOAD_DIR; prevent directory traversal
+function resolveSafePath(relativePath) {
+    if (!relativePath || relativePath === '.' || relativePath === '/') {
+        return UPLOAD_DIR;
+    }
+    const normalized = path.normalize(relativePath).replace(/^(\.\.(\/|\\|$))+/, '');
+    const resolved = path.join(UPLOAD_DIR, normalized);
+    if (!resolved.startsWith(UPLOAD_DIR)) {
+        return null;
+    }
+    return resolved;
+}
 
 function getCategoryForFile(fileName) {
     const extension = path.extname(fileName).toLowerCase();
@@ -48,12 +62,16 @@ function getCategoryForFile(fileName) {
     return DEFAULT_CATEGORY;
 }
 
-// Storage for uploaded files
+// Storage for uploaded files (optional ?folder= subpath)
 const storage = multer.diskStorage({
     destination: async (req, file, cb) => {
-        const uploadDir = UPLOAD_DIR;
-        await fs.mkdir(uploadDir, { recursive: true });
-        cb(null, uploadDir);
+        const sub = (req.query.folder || '').trim().replace(/\.\./g, '');
+        const dir = sub ? path.join(UPLOAD_DIR, path.normalize(sub)) : UPLOAD_DIR;
+        if (sub && !path.join(UPLOAD_DIR, path.normalize(sub)).startsWith(UPLOAD_DIR)) {
+            return cb(new Error('Invalid folder'));
+        }
+        await fs.mkdir(dir, { recursive: true });
+        cb(null, dir);
     },
     filename: (req, file, cb) => {
         cb(null, file.originalname);
@@ -77,16 +95,28 @@ app.get('/api/files', async (req, res) => {
         const entries = await fs.readdir(uploadDir, { withFileTypes: true });
         const fileList = [];
         
+        async function addFile(filePath, relativePath, category) {
+            try {
+                const stats = await fs.stat(filePath);
+                fileList.push({
+                    name: path.basename(filePath),
+                    category,
+                    path: filePath,
+                    relativePath,
+                    size: stats.size,
+                    modifiedAt: stats.mtime
+                });
+            } catch (err) {
+                console.error(`Error stating ${filePath}:`, err);
+            }
+        }
+        
         // Get files from root directory
         const rootFiles = entries.filter(entry => entry.isFile());
-        rootFiles.forEach(file => {
-            fileList.push({
-                name: file.name,
-                category: getCategoryForFile(file.name),
-                path: path.join(uploadDir, file.name),
-                relativePath: file.name
-            });
-        });
+        for (const file of rootFiles) {
+            const filePath = path.join(uploadDir, file.name);
+            await addFile(filePath, file.name, getCategoryForFile(file.name));
+        }
         
         // Get files from subdirectories (categories)
         const directories = entries.filter(entry => entry.isDirectory());
@@ -94,14 +124,10 @@ app.get('/api/files', async (req, res) => {
             const categoryPath = path.join(uploadDir, dir.name);
             try {
                 const categoryFiles = await fs.readdir(categoryPath, { withFileTypes: true });
-                categoryFiles.filter(entry => entry.isFile()).forEach(file => {
-                    fileList.push({
-                        name: file.name,
-                        category: dir.name, // Use directory name as category
-                        path: path.join(categoryPath, file.name),
-                        relativePath: `${dir.name}/${file.name}`
-                    });
-                });
+                for (const file of categoryFiles.filter(entry => entry.isFile())) {
+                    const filePath = path.join(categoryPath, file.name);
+                    await addFile(filePath, `${dir.name}/${file.name}`, dir.name);
+                }
             } catch (err) {
                 console.error(`Error reading directory ${dir.name}:`, err);
             }
@@ -123,15 +149,19 @@ app.get('/api/files', async (req, res) => {
     }
 });
 
-// Upload files
+// Upload files (optional query: ?folder=Documents to upload into a folder)
 app.post('/api/upload', upload.array('files'), async (req, res) => {
     try {
-        const files = req.files.map(file => ({
-            name: file.filename,
-            category: getCategoryForFile(file.filename),
-            path: file.path
-        }));
-        
+        const folder = (req.query.folder || '').trim();
+        const files = (req.files || []).map(file => {
+            const rel = folder ? `${folder}/${file.filename}` : file.filename;
+            return {
+                name: file.filename,
+                category: getCategoryForFile(file.filename),
+                path: file.path,
+                relativePath: rel
+            };
+        });
         res.json({ success: true, files });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -183,56 +213,57 @@ app.post('/api/organize', async (req, res) => {
     }
 });
 
-// Move file to specific category
+// Move file to specific category (optional sourcePath = relative path to file for exact location)
 app.post('/api/move', async (req, res) => {
     try {
-        const { fileName, targetCategory } = req.body;
+        const { fileName, targetCategory, sourcePath: sourceRel } = req.body || {};
         const uploadDir = UPLOAD_DIR;
-        
         let sourcePath = null;
-        
-        // Search in root directory first
-        try {
-            const rootPath = path.join(uploadDir, fileName);
-            await fs.access(rootPath);
-            sourcePath = rootPath;
-        } catch {
-            // Not in root, search in subdirectories
-            const entries = await fs.readdir(uploadDir, { withFileTypes: true });
-            
-            for (const entry of entries) {
-                if (entry.isDirectory()) {
-                    const categoryPath = path.join(uploadDir, entry.name);
-                    try {
-                        const categoryFiles = await fs.readdir(categoryPath);
-                        if (categoryFiles.includes(fileName)) {
-                            sourcePath = path.join(categoryPath, fileName);
-                            break;
+
+        if (sourceRel && typeof sourceRel === 'string') {
+            const resolved = resolveSafePath(sourceRel.trim());
+            if (resolved && path.basename(resolved) === fileName) {
+                try {
+                    const stat = await fs.stat(resolved);
+                    if (stat.isFile()) sourcePath = resolved;
+                } catch (_) {}
+            }
+        }
+        if (!sourcePath) {
+            try {
+                const rootPath = path.join(uploadDir, fileName);
+                await fs.access(rootPath);
+                sourcePath = rootPath;
+            } catch {
+                const entries = await fs.readdir(uploadDir, { withFileTypes: true });
+                for (const entry of entries) {
+                    if (entry.isDirectory()) {
+                        const categoryPath = path.join(uploadDir, entry.name);
+                        try {
+                            const categoryFiles = await fs.readdir(categoryPath);
+                            if (categoryFiles.includes(fileName)) {
+                                sourcePath = path.join(categoryPath, fileName);
+                                break;
+                            }
+                        } catch (err) {
+                            continue;
                         }
-                    } catch (err) {
-                        continue;
                     }
                 }
             }
         }
-        
         if (!sourcePath) {
             return res.status(404).json({ error: 'File not found' });
         }
-        
         const targetPath = path.join(uploadDir, targetCategory);
         await fs.mkdir(targetPath, { recursive: true });
-        
         const destPath = path.join(targetPath, fileName);
-        
-        // Check if file already exists at destination
         try {
             await fs.access(destPath);
             return res.status(400).json({ error: 'File already exists in target category' });
         } catch {
-            // File doesn't exist, proceed with move
+            // OK
         }
-        
         await fs.rename(sourcePath, destPath);
         res.json({ success: true, message: `Moved ${fileName} to ${targetCategory}` });
     } catch (error) {
@@ -241,43 +272,49 @@ app.post('/api/move', async (req, res) => {
     }
 });
 
-// Delete file
+// Delete file (optional path query for exact location)
 app.delete('/api/files/:fileName', async (req, res) => {
     try {
         const { fileName } = req.params;
+        const pathParam = (req.query.path || '').trim();
         const uploadDir = UPLOAD_DIR;
-        
         let filePath = null;
-        
-        // Search in root directory first
-        try {
-            const rootPath = path.join(uploadDir, fileName);
-            await fs.access(rootPath);
-            filePath = rootPath;
-        } catch {
-            // Not in root, search in subdirectories
-            const entries = await fs.readdir(uploadDir, { withFileTypes: true });
-            
-            for (const entry of entries) {
-                if (entry.isDirectory()) {
-                    const categoryPath = path.join(uploadDir, entry.name);
-                    try {
-                        const categoryFiles = await fs.readdir(categoryPath);
-                        if (categoryFiles.includes(fileName)) {
-                            filePath = path.join(categoryPath, fileName);
-                            break;
+
+        if (pathParam) {
+            const resolved = resolveSafePath(pathParam);
+            if (resolved && path.basename(resolved) === fileName) {
+                try {
+                    const stat = await fs.stat(resolved);
+                    if (stat.isFile()) filePath = resolved;
+                } catch (_) {}
+            }
+        }
+        if (!filePath) {
+            try {
+                const rootPath = path.join(uploadDir, fileName);
+                await fs.access(rootPath);
+                filePath = rootPath;
+            } catch {
+                const entries = await fs.readdir(uploadDir, { withFileTypes: true });
+                for (const entry of entries) {
+                    if (entry.isDirectory()) {
+                        const categoryPath = path.join(uploadDir, entry.name);
+                        try {
+                            const categoryFiles = await fs.readdir(categoryPath);
+                            if (categoryFiles.includes(fileName)) {
+                                filePath = path.join(categoryPath, fileName);
+                                break;
+                            }
+                        } catch (err) {
+                            continue;
                         }
-                    } catch (err) {
-                        continue;
                     }
                 }
             }
         }
-        
         if (!filePath) {
             return res.status(404).json({ error: 'File not found' });
         }
-        
         await fs.unlink(filePath);
         res.json({ success: true, message: `Deleted ${fileName}` });
     } catch (error) {
@@ -411,6 +448,250 @@ app.get('/api/storage', async (req, res) => {
 // Get categories
 app.get('/api/categories', (req, res) => {
     res.json({ categories: Object.keys(CATEGORY_RULES).concat([DEFAULT_CATEGORY]) });
+});
+
+// Download file with Content-Disposition: attachment (OS: read stream, client saves to disk)
+app.get('/api/download', async (req, res) => {
+    try {
+        const relativePath = (req.query.path || '').trim();
+        const filePath = resolveSafePath(relativePath);
+        if (!filePath || filePath === UPLOAD_DIR) {
+            return res.status(400).json({ error: 'Invalid or missing path' });
+        }
+        const stat = await fs.stat(filePath);
+        if (!stat.isFile()) {
+            return res.status(400).json({ error: 'Not a file' });
+        }
+        const fileName = path.basename(filePath);
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+        res.setHeader('Content-Type', 'application/octet-stream');
+        const stream = createReadStream(filePath);
+        stream.on('error', (err) => {
+            if (!res.headersSent) res.status(500).json({ error: err.message });
+        });
+        stream.pipe(res);
+    } catch (error) {
+        if (error.code === 'ENOENT') return res.status(404).json({ error: 'File not found' });
+        console.error('Download error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Recursively get folder total size, file count, and latest modified time
+async function getFolderStats(dirPath) {
+    let totalSize = 0;
+    let fileCount = 0;
+    let modifiedAt = null;
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    for (const e of entries) {
+        const fullPath = path.join(dirPath, e.name);
+        try {
+            if (e.isDirectory()) {
+                const sub = await getFolderStats(fullPath);
+                totalSize += sub.totalSize;
+                fileCount += sub.fileCount;
+                if (sub.modifiedAt && (!modifiedAt || sub.modifiedAt > modifiedAt)) modifiedAt = sub.modifiedAt;
+            } else {
+                const st = await fs.stat(fullPath);
+                totalSize += st.size;
+                fileCount += 1;
+                if (!modifiedAt || st.mtime > modifiedAt) modifiedAt = st.mtime;
+            }
+        } catch (err) {
+            // skip inaccessible entries
+        }
+    }
+    return { totalSize, fileCount, modifiedAt };
+}
+
+// Browse directory by path (OS: directory listing / readdir)
+app.get('/api/browse', async (req, res) => {
+    try {
+        const relativePath = (req.query.path || '').trim();
+        const dirPath = resolveSafePath(relativePath);
+        if (!dirPath) {
+            return res.status(400).json({ error: 'Invalid path' });
+        }
+        await fs.mkdir(UPLOAD_DIR, { recursive: true });
+        try {
+            await fs.access(dirPath);
+        } catch {
+            return res.json({ path: relativePath, folders: [], files: [] });
+        }
+        const stat = await fs.stat(dirPath);
+        if (!stat.isDirectory()) {
+            return res.status(400).json({ error: 'Not a directory' });
+        }
+        const entries = await fs.readdir(dirPath, { withFileTypes: true });
+        const folders = [];
+        const files = [];
+        for (const e of entries) {
+            const fullPath = path.join(dirPath, e.name);
+            const rel = relativePath ? `${relativePath}/${e.name}` : e.name;
+            if (e.isDirectory()) {
+                const stats = await getFolderStats(fullPath);
+                folders.push({
+                    name: e.name,
+                    relativePath: rel,
+                    totalSize: stats.totalSize,
+                    fileCount: stats.fileCount,
+                    modifiedAt: stats.modifiedAt,
+                });
+            } else {
+                const st = await fs.stat(fullPath);
+                files.push({
+                    name: e.name,
+                    relativePath: rel,
+                    category: getCategoryForFile(e.name),
+                    size: st.size,
+                    modifiedAt: st.mtime,
+                });
+            }
+        }
+        folders.sort((a, b) => a.name.localeCompare(b.name));
+        files.sort((a, b) => a.name.localeCompare(b.name));
+        res.json({ path: relativePath, folders, files });
+    } catch (error) {
+        console.error('Browse error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Create folder (OS: mkdir)
+app.post('/api/folders', async (req, res) => {
+    try {
+        const { path: relativePath } = req.body || {};
+        const dirPath = resolveSafePath(relativePath || '');
+        if (!dirPath || dirPath === UPLOAD_DIR) {
+            return res.status(400).json({ error: 'Invalid or missing folder path' });
+        }
+        await fs.mkdir(dirPath, { recursive: true });
+        const name = path.basename(dirPath);
+        res.json({ success: true, name, path: relativePath || name });
+    } catch (error) {
+        console.error('Create folder error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Delete folder (OS: rmdir - must be empty)
+app.delete('/api/folders', async (req, res) => {
+    try {
+        const pathParam = (req.query.path || req.body?.path || '').trim();
+        const dirPath = resolveSafePath(pathParam);
+        if (!dirPath || dirPath === UPLOAD_DIR) {
+            return res.status(400).json({ error: 'Invalid or missing folder path' });
+        }
+        const entries = await fs.readdir(dirPath);
+        if (entries.length > 0) {
+            return res.status(400).json({ error: 'Folder is not empty. Delete or move contents first.' });
+        }
+        await fs.rmdir(dirPath);
+        res.json({ success: true, message: 'Folder deleted' });
+    } catch (error) {
+        if (error.code === 'ENOENT') return res.status(404).json({ error: 'Folder not found' });
+        console.error('Delete folder error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Rename file or folder (OS: rename)
+app.put('/api/rename', async (req, res) => {
+    try {
+        const { relativePath, newName } = req.body || {};
+        if (!relativePath || !newName || !newName.trim()) {
+            return res.status(400).json({ error: 'relativePath and newName required' });
+        }
+        const safePath = resolveSafePath(relativePath);
+        if (!safePath || safePath === UPLOAD_DIR) {
+            return res.status(400).json({ error: 'Invalid path' });
+        }
+        try {
+            await fs.access(safePath);
+        } catch {
+            return res.status(404).json({ error: 'File or folder not found' });
+        }
+        const dir = path.dirname(safePath);
+        const newPath = path.join(dir, newName.trim());
+        if (path.relative(UPLOAD_DIR, newPath).startsWith('..')) {
+            return res.status(400).json({ error: 'Invalid new path' });
+        }
+        await fs.rename(safePath, newPath);
+        const newRel = path.dirname(relativePath) ? `${path.dirname(relativePath)}/${newName.trim()}` : newName.trim();
+        res.json({ success: true, relativePath: newRel });
+    } catch (error) {
+        console.error('Rename error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Copy file (OS: read + write copy)
+app.post('/api/copy', async (req, res) => {
+    try {
+        const { relativePath, targetPath } = req.body || {};
+        if (!relativePath || !targetPath) {
+            return res.status(400).json({ error: 'relativePath and targetPath required' });
+        }
+        const sourcePath = resolveSafePath(relativePath);
+        const destDir = resolveSafePath(targetPath);
+        if (!sourcePath || !destDir) {
+            return res.status(400).json({ error: 'Invalid path' });
+        }
+        const stat = await fs.stat(sourcePath);
+        if (stat.isDirectory()) {
+            return res.status(400).json({ error: 'Copying folders not supported' });
+        }
+        await fs.mkdir(destDir, { recursive: true });
+        const fileName = path.basename(sourcePath);
+        const destPath = path.join(destDir, fileName);
+        await fs.copyFile(sourcePath, destPath);
+        const newRel = targetPath ? `${targetPath}/${fileName}` : fileName;
+        res.json({ success: true, relativePath: newRel });
+    } catch (error) {
+        console.error('Copy error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Search files by name (OS: directory traversal + string match)
+app.get('/api/search', async (req, res) => {
+    try {
+        const q = (req.query.q || '').trim().toLowerCase();
+        if (!q) {
+            return res.json({ results: [] });
+        }
+        const results = [];
+        async function scan(dir, relPrefix) {
+            const entries = await fs.readdir(dir, { withFileTypes: true });
+            for (const e of entries) {
+                const rel = relPrefix ? `${relPrefix}/${e.name}` : e.name;
+                if (e.name.toLowerCase().includes(q)) {
+                    if (e.isFile()) {
+                        const fullPath = path.join(dir, e.name);
+                        const st = await fs.stat(fullPath);
+                        results.push({
+                            name: e.name,
+                            relativePath: rel,
+                            category: getCategoryForFile(e.name),
+                            size: st.size,
+                            modifiedAt: st.mtime,
+                        });
+                    } else {
+                        results.push({ name: e.name, relativePath: rel, isFolder: true });
+                    }
+                }
+                if (e.isDirectory()) {
+                    await scan(path.join(dir, e.name), rel);
+                }
+            }
+        }
+        await fs.mkdir(UPLOAD_DIR, { recursive: true });
+        await scan(UPLOAD_DIR, '');
+        res.json({ results });
+    } catch (error) {
+        console.error('Search error:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 app.listen(PORT, () => {

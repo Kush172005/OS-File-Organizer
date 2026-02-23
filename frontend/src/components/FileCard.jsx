@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { formatFileSize, isPdf } from '../utils/fileUtils';
+import PdfThumbnail from './PdfThumbnail';
 
 const FILE_ICONS = {
   Documents: { 
@@ -80,14 +82,6 @@ const FILE_ICONS = {
   },
 };
 
-function formatFileSize(bytes) {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
 function formatDate(dateStr) {
   const date = new Date(dateStr);
   return date.toLocaleDateString('en-US', {
@@ -159,6 +153,8 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
               preload="metadata"
               onLoadedData={(e) => { e.target.currentTime = 1; }}
             />
+          ) : isPdf(file) && thumbnailUrl ? (
+            <PdfThumbnail url={thumbnailUrl} className="w-full h-full" />
           ) : (
             <div className="text-gray-600">
               {fileConfig.icon}
@@ -171,8 +167,13 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
           <h3 className="text-sm font-semibold text-gray-900 truncate mb-1.5" title={file.name}>
             {file.name}
           </h3>
-          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r ${fileConfig.color} text-white text-xs font-medium shadow-sm`}>
-            <span>{file.category}</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r ${fileConfig.color} text-white text-xs font-medium shadow-sm`}>
+              <span>{file.category}</span>
+            </div>
+            <span className="text-xs text-gray-500" title="Size">
+              {formatFileSize(file.size)}
+            </span>
           </div>
         </div>
         
