@@ -11,6 +11,7 @@ import FileManagerToolbar from "../components/FileManagerToolbar";
 import FileManagerTable from "../components/FileManagerTable";
 import Breadcrumbs from "../components/Breadcrumbs";
 import FilePreview from "../components/FilePreview";
+import RecycleBin from "../components/RecycleBin";
 import { formatFileSize } from "../utils/fileUtils";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
@@ -179,6 +180,47 @@ export default function FileManagerPage() {
       alert("Copy failed");
     }
   };
+  
+  const handleRestore = async (trashName) => {
+    try {
+      const res = await fetch(`${API_URL}/api/trash/restore`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trashName }),
+      });
+      const data = await res.json();
+      if (!res.ok) alert(data.error || "Failed to restore");
+      else await load();
+    } catch (e) {
+      alert("Restore failed");
+    }
+  };
+
+  const handlePermanentDelete = async (trashName) => {
+    try {
+      const res = await fetch(`${API_URL}/api/trash/${encodeURIComponent(trashName)}`, {
+        method: "DELETE"
+      });
+      const data = await res.json();
+      if (!res.ok) alert(data.error || "Failed to delete permanently");
+      // No need to reload whole app state, RecycleBin handles its own refresh
+    } catch (e) {
+      alert("Delete failed");
+    }
+  };
+
+  const handleEmptyBin = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/trash-empty`, {
+        method: "DELETE"
+      });
+      const data = await res.json();
+      if (!res.ok) alert(data.error || "Failed to empty bin");
+      else await load();
+    } catch (e) {
+      alert("Empty bin failed");
+    }
+  };
 
   const handleSearch = async (q) => {
     setSearchQuery(q);
@@ -224,10 +266,12 @@ export default function FileManagerPage() {
           setViewMode={setViewMode}
           onUploadClick={() => setShowUploadZone(true)}
           onNewFolder={() => handleCreateFolder(prompt("Folder name:") || "")}
+          organizingFiles={organizingFiles}
           onOrganize={handleOrganize}
           isOrganizing={isOrganizing}
           searchQuery={searchQuery}
           onSearch={handleSearch}
+          currentPath={currentPath}
         />
       </header>
 
@@ -243,7 +287,7 @@ export default function FileManagerPage() {
         />
 
         <main className="flex-1 overflow-auto p-4">
-          {showUploadZone && (
+          {showUploadZone && currentPath !== "__trash__" && (
             <div className="mb-4">
               <FileUpload onFilesUploaded={handleFilesUploaded} currentPath={currentPath} />
               <button type="button" onClick={() => setShowUploadZone(false)} className="mt-2 text-sm text-gray-500 hover:text-gray-700">Cancel</button>
@@ -254,6 +298,13 @@ export default function FileManagerPage() {
             <div className="flex items-center justify-center py-20">
               <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-500 border-t-transparent" />
             </div>
+          ) : currentPath === "__trash__" ? (
+            <RecycleBin 
+                onRestore={handleRestore} 
+                onPermanentDelete={handlePermanentDelete} 
+                onEmptyBin={handleEmptyBin}
+                onNavigate={setCurrentPath}
+            />
           ) : viewMode === "storage" ? (
             <StorageVisualizer />
           ) : viewMode === "category" ? (
