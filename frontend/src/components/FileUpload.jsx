@@ -4,7 +4,10 @@ function FileUpload({ onFilesUploaded, currentPath = "" }) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadCount, setUploadCount] = useState(0);
-  const folderInputRef = useRef(null);
+  const fileInputRef = useRef(null);
+  
+  const isHome = currentPath === "";
+  const isTrash = currentPath === "__trash__";
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -59,7 +62,7 @@ function FileUpload({ onFilesUploaded, currentPath = "" }) {
     }
   };
 
-  const handleFolderSelect = async (e) => {
+  const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files);
     await uploadFiles(files);
   };
@@ -77,7 +80,8 @@ function FileUpload({ onFilesUploaded, currentPath = "" }) {
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      const uploadUrl = currentPath ? `${apiUrl}/api/upload?folder=${encodeURIComponent(currentPath)}` : `${apiUrl}/api/upload`;
+      // Don't append folder param if in trash
+      const uploadUrl = (currentPath && !isTrash) ? `${apiUrl}/api/upload?folder=${encodeURIComponent(currentPath)}` : `${apiUrl}/api/upload`;
       const response = await fetch(uploadUrl, {
         method: "POST",
         body: formData,
@@ -111,15 +115,15 @@ function FileUpload({ onFilesUploaded, currentPath = "" }) {
           }
           ${uploading ? "pointer-events-none opacity-60" : ""}
         `}
-        onClick={() => !uploading && folderInputRef.current?.click()}
+        onClick={() => !uploading && fileInputRef.current?.click()}
       >
         <input
-          ref={folderInputRef}
+          ref={fileInputRef}
           type="file"
-          webkitdirectory="true"
-          directory="true"
+          webkitdirectory={isHome ? "true" : undefined}
+          directory={isHome ? "true" : undefined}
           multiple
-          onChange={handleFolderSelect}
+          onChange={handleFileSelect}
           className="hidden"
           disabled={uploading}
         />
@@ -153,10 +157,10 @@ function FileUpload({ onFilesUploaded, currentPath = "" }) {
             </div>
             <div>
               <p className="text-sm font-medium text-gray-900">
-                Select a folder to organize
+                {isHome ? "Select a folder to organize" : isTrash ? "Upload files to Recycle Bin" : "Upload files to this folder"}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                or drag and drop here
+                {isHome ? "or drag and drop here" : "drag and drop supported"}
               </p>
             </div>
           </div>

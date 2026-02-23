@@ -16,6 +16,8 @@ const PORT = 3001;
 const UPLOAD_DIR = process.env.VERCEL
     ? path.join('/tmp', 'uploads')
     : path.join(__dirname, 'uploads');
+const TRASH_DIR = path.join(UPLOAD_DIR, '.trash');
+const TRASH_METADATA_FILE = path.join(TRASH_DIR, 'metadata.json');
 
 app.use(cors());
 app.use(express.json());
@@ -62,6 +64,22 @@ function getCategoryForFile(fileName) {
     return DEFAULT_CATEGORY;
 }
 
+// Recycle Bin metadata helpers
+async function getTrashMetadata() {
+    try {
+        await fs.mkdir(TRASH_DIR, { recursive: true });
+        const data = await fs.readFile(TRASH_METADATA_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch {
+        return {};
+    }
+}
+
+async function saveTrashMetadata(metadata) {
+    await fs.mkdir(TRASH_DIR, { recursive: true });
+    await fs.writeFile(TRASH_METADATA_FILE, JSON.stringify(metadata, null, 2));
+}
+
 // Storage for uploaded files (optional ?folder= subpath)
 const storage = multer.diskStorage({
     destination: async (req, file, cb) => {
@@ -92,7 +110,8 @@ app.get('/api/files', async (req, res) => {
             return res.json({ files: [], categories: {} });
         }
         
-        const entries = await fs.readdir(uploadDir, { withFileTypes: true });
+        const entries = (await fs.readdir(uploadDir, { withFileTypes: true }))
+            .filter(entry => !entry.name.startsWith('.'));
         const fileList = [];
         
         async function addFile(filePath, relativePath, category) {
@@ -315,8 +334,25 @@ app.delete('/api/files/:fileName', async (req, res) => {
         if (!filePath) {
             return res.status(404).json({ error: 'File not found' });
         }
-        await fs.unlink(filePath);
-        res.json({ success: true, message: `Deleted ${fileName}` });
+        
+        // Move to Trash instead of unlinking
+        await fs.mkdir(TRASH_DIR, { recursive: true });
+        const trashName = `${Date.now()}-${fileName}`;
+        const trashPath = path.join(TRASH_DIR, trashName);
+        
+        const metadata = await getTrashMetadata();
+        metadata[trashName] = {
+            originalName: fileName,
+            originalPath: path.relative(UPLOAD_DIR, filePath),
+            category: getCategoryForFile(fileName),
+            deletedAt: new Date().toISOString(),
+            size: (await fs.stat(filePath)).size
+        };
+        
+        await fs.rename(filePath, trashPath);
+        await saveTrashMetadata(metadata);
+        
+        res.json({ success: true, message: `Moved ${fileName} to Recycle Bin` });
     } catch (error) {
         console.error('Delete error:', error);
         res.status(500).json({ error: error.message });
@@ -395,7 +431,8 @@ app.get('/api/storage', async (req, res) => {
             return res.json(result);
         }
 
-        const entries = await fs.readdir(uploadDir, { withFileTypes: true });
+        const entries = (await fs.readdir(uploadDir, { withFileTypes: true }))
+            .filter(entry => !entry.name.startsWith('.'));
 
         // Process root-level files
         for (const entry of entries) {
@@ -414,7 +451,7 @@ app.get('/api/storage', async (req, res) => {
         }
 
         // Process subdirectory files
-        const directories = entries.filter(e => e.isDirectory());
+        const directories = entries.filter(e => e.isDirectory() && !e.name.startsWith('.'));
         for (const dir of directories) {
             const dirPath = path.join(uploadDir, dir.name);
             try {
@@ -522,7 +559,8 @@ app.get('/api/browse', async (req, res) => {
         if (!stat.isDirectory()) {
             return res.status(400).json({ error: 'Not a directory' });
         }
-        const entries = await fs.readdir(dirPath, { withFileTypes: true });
+        const entries = (await fs.readdir(dirPath, { withFileTypes: true }))
+            .filter(entry => !entry.name.startsWith('.'));
         const folders = [];
         const files = [];
         for (const e of entries) {
@@ -662,7 +700,8 @@ app.get('/api/search', async (req, res) => {
         }
         const results = [];
         async function scan(dir, relPrefix) {
-            const entries = await fs.readdir(dir, { withFileTypes: true });
+            const entries = (await fs.readdir(dir, { withFileTypes: true }))
+                .filter(entry => !entry.name.startsWith('.'));
             for (const e of entries) {
                 const rel = relPrefix ? `${relPrefix}/${e.name}` : e.name;
                 if (e.name.toLowerCase().includes(q)) {
@@ -690,6 +729,105 @@ app.get('/api/search', async (req, res) => {
         res.json({ results });
     } catch (error) {
         console.error('Search error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// --- Recycle Bin Endpoints ---
+
+// Get all files in Recycle Bin
+app.get('/api/trash', async (req, res) => {
+    try {
+        const metadata = await getTrashMetadata();
+        const trashFiles = Object.entries(metadata).map(([trashName, info]) => ({
+            trashName,
+            ...info,
+            relativePath: `.trash/${trashName}`
+        }));
+        res.json({ trash: trashFiles });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Restore file from Recycle Bin
+app.post('/api/trash/restore', async (req, res) => {
+    try {
+        const { trashName } = req.body;
+        if (!trashName) return res.status(400).json({ error: 'trashName required' });
+
+        const metadata = await getTrashMetadata();
+        const fileInfo = metadata[trashName];
+
+        if (!fileInfo) return res.status(404).json({ error: 'File not found in trash' });
+
+        const sourcePath = path.join(TRASH_DIR, trashName);
+        const destPath = path.join(UPLOAD_DIR, fileInfo.originalPath);
+
+        // Ensure destination directory exists
+        await fs.mkdir(path.dirname(destPath), { recursive: true });
+
+        // If file already exists at destination, rename it
+        let finalDestPath = destPath;
+        try {
+            await fs.access(destPath);
+            const ext = path.extname(fileInfo.originalName);
+            const base = path.basename(fileInfo.originalName, ext);
+            finalDestPath = path.join(path.dirname(destPath), `${base}-restored-${Date.now()}${ext}`);
+        } catch {
+            // OK
+        }
+
+        await fs.rename(sourcePath, finalDestPath);
+        delete metadata[trashName];
+        await saveTrashMetadata(metadata);
+
+        res.json({ success: true, message: `Restored to ${path.relative(UPLOAD_DIR, finalDestPath)}` });
+    } catch (error) {
+        console.error('Restore error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Permanently delete file from Recycle Bin
+app.delete('/api/trash/:trashName', async (req, res) => {
+    try {
+        const { trashName } = req.params;
+        const metadata = await getTrashMetadata();
+        const fileInfo = metadata[trashName];
+
+        if (!fileInfo) return res.status(404).json({ error: 'File not found in trash' });
+
+        const filePath = path.join(TRASH_DIR, trashName);
+        try {
+            await fs.unlink(filePath);
+        } catch (err) {
+            console.error('Error unlinking file in trash:', err);
+        }
+
+        delete metadata[trashName];
+        await saveTrashMetadata(metadata);
+
+        res.json({ success: true, message: 'Permanently deleted' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Empty Recycle Bin
+app.delete('/api/trash-empty', async (req, res) => {
+    try {
+        const metadata = await getTrashMetadata();
+        for (const trashName of Object.keys(metadata)) {
+            try {
+                await fs.unlink(path.join(TRASH_DIR, trashName));
+            } catch (err) {
+                // Ignore errors (file might be missing)
+            }
+        }
+        await saveTrashMetadata({});
+        res.json({ success: true, message: 'Recycle Bin emptied' });
+    } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
