@@ -11,11 +11,16 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3001;
 
+// Use /tmp on Vercel (read-only filesystem), local path otherwise
+const UPLOAD_DIR = process.env.VERCEL
+    ? path.join('/tmp', 'uploads')
+    : path.join(__dirname, 'uploads');
+
 app.use(cors());
 app.use(express.json());
 
 // Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(UPLOAD_DIR));
 
 // File categorization rules
 const CATEGORY_RULES = {
@@ -46,7 +51,7 @@ function getCategoryForFile(fileName) {
 // Storage for uploaded files
 const storage = multer.diskStorage({
     destination: async (req, file, cb) => {
-        const uploadDir = path.join(__dirname, 'uploads');
+        const uploadDir = UPLOAD_DIR;
         await fs.mkdir(uploadDir, { recursive: true });
         cb(null, uploadDir);
     },
@@ -60,7 +65,7 @@ const upload = multer({ storage });
 // Get all files in uploads directory
 app.get('/api/files', async (req, res) => {
     try {
-        const uploadDir = path.join(__dirname, 'uploads');
+        const uploadDir = UPLOAD_DIR;
         
         try {
             await fs.access(uploadDir);
@@ -136,7 +141,7 @@ app.post('/api/upload', upload.array('files'), async (req, res) => {
 // Organize files
 app.post('/api/organize', async (req, res) => {
     try {
-        const uploadDir = path.join(__dirname, 'uploads');
+        const uploadDir = UPLOAD_DIR;
         const entries = await fs.readdir(uploadDir, { withFileTypes: true });
         const files = entries.filter(entry => entry.isFile());
         
@@ -182,7 +187,7 @@ app.post('/api/organize', async (req, res) => {
 app.post('/api/move', async (req, res) => {
     try {
         const { fileName, targetCategory } = req.body;
-        const uploadDir = path.join(__dirname, 'uploads');
+        const uploadDir = UPLOAD_DIR;
         
         let sourcePath = null;
         
@@ -240,7 +245,7 @@ app.post('/api/move', async (req, res) => {
 app.delete('/api/files/:fileName', async (req, res) => {
     try {
         const { fileName } = req.params;
-        const uploadDir = path.join(__dirname, 'uploads');
+        const uploadDir = UPLOAD_DIR;
         
         let filePath = null;
         
@@ -285,7 +290,7 @@ app.delete('/api/files/:fileName', async (req, res) => {
 app.get('/api/files/:fileName/details', async (req, res) => {
     try {
         const { fileName } = req.params;
-        const uploadDir = path.join(__dirname, 'uploads');
+        const uploadDir = UPLOAD_DIR;
         
         let filePath = null;
         let fileCategory = null;
@@ -334,6 +339,71 @@ app.get('/api/files/:fileName/details', async (req, res) => {
         });
     } catch (error) {
         console.error('File details error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get storage usage per category
+app.get('/api/storage', async (req, res) => {
+    try {
+        const uploadDir = UPLOAD_DIR;
+        const result = {
+            totalSize: 0,
+            categories: {}
+        };
+
+        try {
+            await fs.access(uploadDir);
+        } catch {
+            return res.json(result);
+        }
+
+        const entries = await fs.readdir(uploadDir, { withFileTypes: true });
+
+        // Process root-level files
+        for (const entry of entries) {
+            if (entry.isFile()) {
+                const filePath = path.join(uploadDir, entry.name);
+                const stats = await fs.stat(filePath);
+                const category = getCategoryForFile(entry.name);
+
+                if (!result.categories[category]) {
+                    result.categories[category] = { size: 0, fileCount: 0 };
+                }
+                result.categories[category].size += stats.size;
+                result.categories[category].fileCount += 1;
+                result.totalSize += stats.size;
+            }
+        }
+
+        // Process subdirectory files
+        const directories = entries.filter(e => e.isDirectory());
+        for (const dir of directories) {
+            const dirPath = path.join(uploadDir, dir.name);
+            try {
+                const dirFiles = await fs.readdir(dirPath, { withFileTypes: true });
+                for (const file of dirFiles) {
+                    if (file.isFile()) {
+                        const filePath = path.join(dirPath, file.name);
+                        const stats = await fs.stat(filePath);
+                        const category = dir.name;
+
+                        if (!result.categories[category]) {
+                            result.categories[category] = { size: 0, fileCount: 0 };
+                        }
+                        result.categories[category].size += stats.size;
+                        result.categories[category].fileCount += 1;
+                        result.totalSize += stats.size;
+                    }
+                }
+            } catch (err) {
+                console.error(`Error reading directory ${dir.name}:`, err);
+            }
+        }
+
+        res.json(result);
+    } catch (error) {
+        console.error('Error calculating storage:', error);
         res.status(500).json({ error: error.message });
     }
 });

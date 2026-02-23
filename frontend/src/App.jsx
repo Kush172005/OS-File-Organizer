@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import FileUpload from "./components/FileUpload";
 import FileGrid from "./components/FileGrid";
 import CategoryView from "./components/CategoryView";
+import StorageVisualizer from "./components/StorageVisualizer";
 import Header from "./components/Header";
 import OrganizeAnimation from "./components/OrganizeAnimation";
 import Loader from "./components/Loader";
@@ -194,6 +195,19 @@ function App() {
                   >
                     By Category
                   </button>
+                  <button
+                    onClick={() => setView("storage")}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                      view === "storage"
+                        ? "bg-[#007AFF] text-white"
+                        : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
+                    }`}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                    </svg>
+                    Storage
+                  </button>
                 </div>
 
                 <button
@@ -246,13 +260,15 @@ function App() {
                   onMove={handleMove}
                   deletingFile={deletingFile}
                 />
-              ) : (
+              ) : view === "category" ? (
                 <CategoryView
                   categories={categories}
                   onDelete={handleDelete}
                   onMove={handleMove}
                   deletingFile={deletingFile}
                 />
+              ) : (
+                <StorageVisualizer />
               )}
             </div>
           </div>
