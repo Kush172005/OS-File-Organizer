@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 
-function FileUpload({ onFilesUploaded }) {
+function FileUpload({ onFilesUploaded, currentPath = "" }) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadCount, setUploadCount] = useState(0);
@@ -77,7 +77,8 @@ function FileUpload({ onFilesUploaded }) {
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
-      const response = await fetch(`${apiUrl}/api/upload`, {
+      const uploadUrl = currentPath ? `${apiUrl}/api/upload?folder=${encodeURIComponent(currentPath)}` : `${apiUrl}/api/upload`;
+      const response = await fetch(uploadUrl, {
         method: "POST",
         body: formData,
       });

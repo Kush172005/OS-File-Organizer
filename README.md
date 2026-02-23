@@ -1,269 +1,217 @@
-# File Organizer - Operating Systems Project
+# File Organizer — Operating Systems Project
 
-A CLI-based file organization tool built with Node.js that demonstrates **File System Management** concepts in Operating Systems.
-
----
-
-## 📚 What is File System Management?
-
-**File System Management** is a core component of Operating Systems that handles how data is stored, organized, and retrieved on storage devices. It provides an abstraction layer between the physical storage hardware and the applications that use it.
-
-### Key Responsibilities:
-
-1. **File Organization**: Structuring files in directories/folders
-2. **File Operations**: Create, read, update, delete (CRUD) operations
-3. **Path Resolution**: Converting relative/absolute paths to physical locations
-4. **Access Control**: Managing permissions and file ownership
-5. **Metadata Management**: Storing file attributes (size, type, timestamps)
-6. **Space Management**: Allocating and deallocating storage space
+A **full-stack file organizer** (backend API + web UI) that demonstrates **File System Management** concepts in Operating Systems. Upload, browse, categorize, search, rename, copy, and delete files with a workflow that mirrors how the OS handles file storage and directories.
 
 ---
 
-## 🎯 How This Project Relates to OS Concepts
+## B1. Architecture & Workflow
 
-This File Organizer demonstrates several fundamental OS concepts:
+### System design
 
-### 1. **File System Operations**
-- **Reading directories**: Uses `readdir()` to scan directory contents
-- **Moving files**: Uses `rename()` for atomic file movement
-- **Creating directories**: Uses `mkdir()` with recursive flag
-- **File metadata**: Extracts file extensions and types
+- **Backend (Node.js + Express)**: REST API over the project’s upload directory. All file operations use the Node.js `fs` (and `path`) APIs, which map to OS system calls. This choice gives a direct, traceable link to OS behaviour (e.g. `readdir`, `rename`, `mkdir`, `stat`, `copyFile`, `unlink`, `rmdir`).
+- **Frontend (React + Vite)**: Single-page app with routing (Landing → Features → File Manager). The file manager uses a **path-based browse** model: the UI shows a current directory path, and the backend returns folders and files for that path. This mirrors the OS idea of “current directory” and hierarchical paths.
+- **Sync primitives**: No custom kernel sync primitives; the app relies on the OS’s own serialisation of file system calls (e.g. `rename` is atomic at the OS level). Concurrency is handled by the single Node process and the non-blocking async `fs` API.
 
-### 2. **System Calls**
-Node.js `fs` module maps directly to OS system calls:
+### Why this design?
 
-| Node.js Function | OS System Call | Purpose |
-|-----------------|----------------|---------|
-| `fs.readdir()` | `readdir()` | Read directory entries |
-| `fs.rename()` | `rename()` | Move/rename files |
-| `fs.mkdir()` | `mkdir()` | Create directories |
-| `fs.access()` | `access()` | Check file existence/permissions |
-| `fs.appendFile()` | `open()` + `write()` | Append to log file |
-
-### 3. **Path Resolution**
-- Converts relative paths to absolute paths
-- Handles cross-platform path separators
-- Resolves parent directory references
-
-### 4. **Error Handling**
-- Permission denied errors (EACCES)
-- File not found errors (ENOENT)
-- File in use errors (EBUSY)
-- Invalid path errors
-
-### 5. **I/O Operations**
-- Asynchronous I/O using `async/await`
-- Non-blocking file operations
-- Buffered logging to disk
-
-### 6. **File Classification**
-- Uses file extensions as metadata
-- Implements categorization logic
-- Demonstrates file type identification
+- **Path-based browsing**: Aligns with how the OS represents the file tree (paths, directories, entries). The `/api/browse?path=...` endpoint is the “read directory” abstraction.
+- **Category-based organization**: File type (extension) drives suggested folders (Documents, Images, etc.). “Organize” uses `rename()` to move files into category folders, demonstrating how the OS moves data by path.
+- **Single upload root**: All files live under one root directory (e.g. `backend/uploads`). Path resolution is normalized and validated to avoid directory traversal, similar to how an OS constrains processes to a subtree.
 
 ---
 
-## 🏗️ Project Structure
+## B2. Alignment & Kickoff
+
+Core features defined for a file organizer and how they are implemented:
+
+| Kickoff feature        | Implementation                                                                 |
+|------------------------|----------------------------------------------------------------------------------|
+| Upload files/folders   | `POST /api/upload` (optional `?folder=` to upload into a path)                  |
+| Browse by folder       | `GET /api/browse?path=...` — list folders and files at a given path             |
+| Organize by type       | `POST /api/organize` — move root-level files into category folders by extension |
+| View by category       | `GET /api/files` returns categories; UI has “Category” and “Storage” views      |
+| Move / delete files    | `POST /api/move`, `DELETE /api/files/:fileName` (optional `?path=` for location) |
+| Create folders         | `POST /api/folders` — create directory at a path                               |
+| Rename                 | `PUT /api/rename` — rename file or folder                                      |
+| Copy                   | `POST /api/copy` — copy file to another folder                                |
+| Search                 | `GET /api/search?q=...` — search by name across the tree                       |
+| Storage view           | `GET /api/storage` — size and count per category                               |
+| File details / preview | `GET /api/files/:name/details`; UI preview for images/videos |
+| Download (save to disk) | `GET /api/download?path=...` — streams file with `Content-Disposition: attachment` |
+
+---
+
+## B3. GitHub History
+
+The repository is developed with **incremental commits** that reflect the workflow:
+
+- Initial setup (backend + frontend, upload, list, organize).
+- Addition of move, delete, file details, storage API.
+- Addition of browse-by-path, create folder, rename, copy, search.
+- UI: landing page, features page, file manager with sidebar, breadcrumbs, table/grid views, search.
+
+Commits should show feature-by-feature progression rather than a single “final upload”.
+
+---
+
+## B4. Readability & Tools
+
+- **Makefile**: Ease of build and run.
+  - `make help` — list targets  
+  - `make install` — install backend + frontend dependencies  
+  - `make run-backend` — start API server (port 3001)  
+  - `make run-frontend` — start frontend dev server (port 5173)  
+  - `make build` — build frontend for production  
+  - `make test` — run backend API test script  
+
+- **Shell script**: `backend/test-api.sh` — exercises API endpoints (files, upload, organize, move, delete, etc.) for quick validation. Run with backend up: `./backend/test-api.sh` or `make test`.
+
+- **Debugging**: Backend is Node.js; use `node --inspect server.js` and Chrome DevTools or VS Code’s Node debugger. For frontend, use browser DevTools and React DevTools.
+
+---
+
+## What is File System Management?
+
+**File System Management** is the part of the OS that handles how data is stored, organized, and retrieved on storage. It provides an abstraction (files, directories, paths) between applications and the physical device.
+
+### Responsibilities
+
+1. **File organization** — Directories and hierarchy  
+2. **File operations** — Create, read, update, delete  
+3. **Path resolution** — Relative/absolute paths to physical locations  
+4. **Metadata** — Size, type, timestamps  
+5. **Space** — Allocation and usage
+
+---
+
+## How This App Maps to OS Concepts
+
+### 1. File system operations
+
+- **Directory listing**: `GET /api/browse` uses `fs.readdir(..., { withFileTypes: true })` (OS: `readdir()`).
+- **Create directory**: `POST /api/folders` uses `fs.mkdir(..., { recursive: true })` (OS: `mkdir()`).
+- **Move/rename**: `POST /api/move`, `PUT /api/rename` use `fs.rename()` (OS: `rename()`).
+- **Copy**: `POST /api/copy` uses `fs.copyFile()` (read + write at OS level).
+- **Delete file**: `DELETE /api/files` uses `fs.unlink()` (OS: `unlink()`).
+- **Delete folder**: `DELETE /api/folders` uses `fs.rmdir()` (OS: `rmdir()`).
+- **Metadata**: `GET /api/files/:name/details`, `GET /api/storage` use `fs.stat()` (size, birthtime, mtime).
+
+### 2. System calls (Node `fs` → OS)
+
+| Node.js       | OS / Purpose              |
+|---------------|---------------------------|
+| `fs.readdir()`| Read directory entries    |
+| `fs.mkdir()`  | Create directory          |
+| `fs.rename()` | Move/rename               |
+| `fs.copyFile()` | Copy file               |
+| `fs.unlink()` | Delete file               |
+| `fs.rmdir()`  | Remove empty directory    |
+| `fs.stat()`   | File metadata             |
+| `fs.access()`| Existence/permissions     |
+
+### 3. Path resolution
+
+- Backend resolves all paths relative to a single upload root.
+- Paths are normalized and checked to prevent directory traversal (no `..` outside the root).
+- Cross-platform paths use `path.join` and `path.normalize`.
+
+### 4. File classification
+
+- Categories (Documents, Images, Audio, Videos, Archives, Code, Others) are derived from **file extension** (metadata).
+- “Organize” moves files into folders by this classification using `rename()`.
+
+---
+
+## Project structure
 
 ```
 file-organizer/
-├── organizer.js        # Main CLI entry point
-├── rules.js            # File extension to category mapping
-├── utils.js            # Helper functions (logging, directory management)
-├── logs.txt            # Operation logs (auto-generated)
-└── README.md           # This file
+├── backend/
+│   ├── server.js       # Express API, all file operations
+│   ├── uploads/         # Default upload root (created at runtime)
+│   ├── test-api.sh     # API test script
+│   └── package.json
+├── frontend/
+│   ├── src/
+│   │   ├── App.jsx           # Router (/, /features, /app)
+│   │   ├── pages/            # Landing, Features, FileManager
+│   │   └── components/       # FileUpload, Sidebar, Toolbar, Table, etc.
+│   └── package.json
+├── .github/workflows/ci.yml  # CI (frontend build)
+├── Makefile                  # install, run, build, test
+└── README.md
 ```
 
 ---
 
-## 🚀 How to Run
+## How to run
 
 ### Prerequisites
-- Node.js installed (v12 or higher)
-- Terminal/Command Prompt access
 
-### Steps
+- Node.js (v18+ recommended)
 
-1. **Navigate to the project directory**:
-   ```bash
-   cd file-organizer
-   ```
+### Quick start
 
-2. **Create a test directory** (sandbox):
-   ```bash
-   mkdir sandbox
-   ```
-
-3. **Add some test files** to the sandbox:
-   ```bash
-   cd sandbox
-   touch resume.pdf photo.jpg song.mp3 video.mp4 notes.txt document.docx
-   cd ..
-   ```
-
-4. **Run the organizer**:
-   ```bash
-   node organizer.js ./sandbox
-   ```
-
-### Expected Output
-
-```
-----------------------------------
-FILE ORGANIZER STARTED
-----------------------------------
-Target Directory: /absolute/path/to/sandbox
-
-Found 6 file(s)
-
-[MOVED] resume.pdf → Documents/
-[MOVED] photo.jpg → Images/
-[MOVED] song.mp3 → Audio/
-[MOVED] video.mp4 → Videos/
-[MOVED] notes.txt → Documents/
-[MOVED] document.docx → Documents/
-
-----------------------------------
-ORGANIZATION COMPLETED
-----------------------------------
-
-Summary:
-  Total files found: 6
-  Successfully moved: 6
-  Skipped/Errors: 0
-```
-
-### After Running
-
-Check the `sandbox` directory - files will be organized into category folders:
-
-```
-sandbox/
-├── Documents/
-│   ├── resume.pdf
-│   ├── notes.txt
-│   └── document.docx
-├── Images/
-│   └── photo.jpg
-├── Audio/
-│   └── song.mp3
-└── Videos/
-    └── video.mp4
-```
-
----
-
-## 📋 File Categorization Rules
-
-| Category | Extensions |
-|----------|-----------|
-| **Documents** | `.pdf`, `.doc`, `.docx`, `.txt` |
-| **Images** | `.jpg`, `.jpeg`, `.png` |
-| **Audio** | `.mp3`, `.wav` |
-| **Videos** | `.mp4`, `.mkv` |
-| **Others** | Everything else |
-
----
-
-## 📝 Logging
-
-All operations are logged to `logs.txt` with timestamps:
-
-```
-[2026-02-04T01:37:39.123Z] MOVED | File: resume.pdf | Category: Documents
-[2026-02-04T01:37:39.456Z] MOVED | File: photo.jpg | Category: Images
-[2026-02-04T01:37:39.789Z] ERROR | File: locked.txt | Category: N/A | Details: EACCES: permission denied
-```
-
----
-
-## 🔒 Safety Features
-
-1. **Non-destructive**: Only operates on the specified directory
-2. **Duplicate handling**: Skips files that already exist at destination
-3. **Error recovery**: Continues processing even if individual files fail
-4. **Validation**: Checks directory existence before processing
-5. **Atomic operations**: Uses `rename()` for safe file movement
-
----
-
-## 🧪 Testing Scenarios
-
-### Test 1: Basic Organization
 ```bash
-mkdir test1
-cd test1
-touch file1.pdf file2.jpg file3.mp3
-cd ..
-node organizer.js ./test1
+cd file-organizer
+make install
+make run-backend    # Terminal 1: API on http://localhost:3001
+make run-frontend   # Terminal 2: UI on http://localhost:5173
 ```
 
-### Test 2: Mixed Files
+Then open **http://localhost:5173** — Landing → **Open File Organizer** or **Open App** → File Manager.
+
+### Manual
+
 ```bash
-mkdir test2
-cd test2
-touch report.pdf image.png song.wav video.mkv unknown.xyz
-cd ..
-node organizer.js ./test2
+# Backend
+cd backend && npm install && node server.js
+
+# Frontend (another terminal)
+cd frontend && npm install && npm run dev
 ```
 
-### Test 3: Error Handling (Permission Denied)
-```bash
-mkdir test3
-cd test3
-touch locked.txt
-chmod 000 locked.txt  # Remove all permissions
-cd ..
-node organizer.js ./test3
-```
+### Production build
 
-### Test 4: Empty Directory
 ```bash
-mkdir test4
-node organizer.js ./test4
+make build   # or: cd frontend && npm run build
+# Serve frontend/dist with any static server; point API to backend (e.g. VITE_API_URL).
 ```
 
 ---
 
-## 🎓 OS Concepts Summary
+## File categorization rules
 
-### What You Learn:
-1. **File System Hierarchy**: How files are organized in directories
-2. **System Calls**: How applications interact with the OS kernel
-3. **Path Resolution**: How OS resolves file paths
-4. **Error Handling**: How OS reports and handles file system errors
-5. **Atomic Operations**: How OS ensures file operation integrity
-6. **Metadata**: How OS stores and uses file information
-
-### Real-World Applications:
-- Download folder organizers
-- Photo management tools
-- Document archiving systems
-- Backup utilities
-- Media library organizers
+| Category   | Extensions (examples) |
+|-----------|------------------------|
+| Documents | .pdf, .doc, .docx, .txt, .md |
+| Images    | .jpg, .jpeg, .png, .gif, .svg, .webp |
+| Audio     | .mp3, .wav, .ogg, .m4a |
+| Videos    | .mp4, .mkv, .avi, .mov, .webm |
+| Archives  | .zip, .rar, .7z, .tar, .gz |
+| Code      | .js, .jsx, .ts, .tsx, .py, .java, .cpp, .c, .html, .css |
+| Others    | Everything else |
 
 ---
 
-## 🔧 Technical Details
+## Safety and robustness
 
-### Node.js Built-in Modules Used:
-- **`fs`**: File system operations
-- **`path`**: Path manipulation and resolution
-
-### Async/Await Pattern:
-Uses modern JavaScript async/await for clean, readable asynchronous code instead of callbacks.
-
-### Error Handling Strategy:
-- Try-catch blocks for each file operation
-- Graceful degradation (continues on errors)
-- Detailed error logging
-- User-friendly error messages
+- **Path validation**: No directory traversal; paths are constrained to the upload root.
+- **Duplicate handling**: Move/copy can report or skip when the destination already exists.
+- **Empty folders**: Delete folder only when empty (`rmdir`).
+- **Async I/O**: Non-blocking `fs` calls with error handling and HTTP status codes.
 
 ---
 
-## 📚 References
+## OS concepts summary (for evaluation)
 
-- [Node.js File System Documentation](https://nodejs.org/api/fs.html)
-- [POSIX File System Calls](https://pubs.opengroup.org/onlinepubs/9699919799/)
-- Operating Systems Concepts by Silberschatz, Galvin, and Gagne
-  
+1. **File system hierarchy** — Directories and paths in the UI and API.  
+2. **System calls** — All operations go through `fs` (readdir, mkdir, rename, stat, etc.).  
+3. **Path resolution** — Normalized, safe paths relative to one root.  
+4. **Metadata** — Extension, size, created/modified time from `stat()`.  
+5. **Atomic move** — `rename()` for moving/organizing files.  
+6. **Storage view** — Aggregated size/count by category (like disk usage).
+
+---
+
+**Team Mavericks** — Operating Systems Project — File System Management

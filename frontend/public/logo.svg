@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 40" fill="none">
+  <defs>
+    <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <!-- Icon -->
+  <g transform="translate(0,2)">
+    <path d="M18 17v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V17a2 2 0 0 0-2-2h-5.2l-1-1.4H20a2 2 0 0 0-2 2z" stroke="url(#logoGrad)" stroke-width="1.8" fill="none" stroke-linejoin="round"/>
+    <path d="M22 22h6M22 25h4M22 28h5" stroke="white" stroke-width="1" stroke-linecap="round" opacity=".9"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="44" y="26" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="18" font-weight="600" fill="currentColor">File Organizer</text>
+</svg>
