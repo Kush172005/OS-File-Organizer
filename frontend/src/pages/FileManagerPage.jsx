@@ -12,7 +12,7 @@ import FileManagerTable from "../components/FileManagerTable";
 import Breadcrumbs from "../components/Breadcrumbs";
 import FilePreview from "../components/FilePreview";
 import RecycleBin from "../components/RecycleBin";
-import { formatFileSize } from "../utils/fileUtils";
+import { formatFileSize, sortFoldersAndFiles, sortFilesOnly, SORT_OPTIONS } from "../utils/fileUtils";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 
@@ -31,6 +31,8 @@ export default function FileManagerPage() {
   const [deletingFile, setDeletingFile] = useState(null);
   const [isMoving, setIsMoving] = useState(false);
   const [showUploadZone, setShowUploadZone] = useState(false);
+  const [sortBy, setSortBy] = useState("name");
+  const [sortOrder, setSortOrder] = useState("asc");
 
   const fetchBrowse = useCallback(async (path) => {
     try {
@@ -57,7 +59,11 @@ export default function FileManagerPage() {
 
   const load = useCallback(async () => {
     setIsLoading(true);
-    await Promise.all([fetchBrowse(currentPath), fetchFiles()]);
+    if (currentPath === "__all__") {
+      await fetchFiles();
+    } else {
+      await Promise.all([fetchBrowse(currentPath), fetchFiles()]);
+    }
     setIsLoading(false);
   }, [currentPath, fetchBrowse, fetchFiles]);
 
@@ -136,7 +142,7 @@ export default function FileManagerPage() {
   };
 
   const handleCreateFolder = async (folderName) => {
-    const path = currentPath ? `${currentPath}/${folderName}` : folderName;
+    const path = effectivePathForOps ? `${effectivePathForOps}/${folderName}` : folderName;
     try {
       const res = await fetch(`${API_URL}/api/folders`, {
         method: "POST",
@@ -238,12 +244,21 @@ export default function FileManagerPage() {
   };
 
   const inSearchMode = searchQuery.trim() !== "";
-  const displayFolders = searchResults !== null
-    ? (searchResults || []).filter((r) => r.isFolder).map((r) => ({ name: r.name, relativePath: r.relativePath }))
+  const isAllFilesView = currentPath === "__all__";
+  const effectivePathForOps = isAllFilesView ? "" : currentPath;
+
+  const rawFolders = searchResults !== null
+    ? (searchResults || []).filter((r) => r.isFolder).map((r) => ({ name: r.name, relativePath: r.relativePath, modifiedAt: r.modifiedAt, totalSize: r.totalSize, fileCount: r.fileCount }))
     : browseData.folders || [];
-  const displayFiles = searchResults !== null
+  const rawFiles = searchResults !== null
     ? (searchResults || []).filter((r) => !r.isFolder)
-    : browseData.files || [];
+    : isAllFilesView
+      ? files
+      : browseData.files || [];
+
+  const { folders: displayFolders, files: displayFiles } = isAllFilesView
+    ? { folders: [], files: sortFilesOnly(rawFiles, sortBy, sortOrder) }
+    : sortFoldersAndFiles(rawFolders, rawFiles, sortBy, sortOrder);
 
   return (
     <div className="min-h-screen bg-[#f0f2f5] flex flex-col">
@@ -272,6 +287,10 @@ export default function FileManagerPage() {
           searchQuery={searchQuery}
           onSearch={handleSearch}
           currentPath={currentPath}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          onSortChange={(by, order) => { setSortBy(by); setSortOrder(order); }}
+          showSort={isAllFilesView || viewMode === "table" || viewMode === "grid"}
         />
       </header>
 
@@ -289,7 +308,7 @@ export default function FileManagerPage() {
         <main className="flex-1 overflow-auto p-4">
           {showUploadZone && currentPath !== "__trash__" && (
             <div className="mb-4">
-              <FileUpload onFilesUploaded={handleFilesUploaded} currentPath={currentPath} />
+              <FileUpload onFilesUploaded={handleFilesUploaded} currentPath={effectivePathForOps} />
               <button type="button" onClick={() => setShowUploadZone(false)} className="mt-2 text-sm text-gray-500 hover:text-gray-700">Cancel</button>
             </div>
           )}
@@ -330,6 +349,7 @@ export default function FileManagerPage() {
                   onCopy={handleCopy}
                   deletingFile={deletingFile}
                   inSearchMode={inSearchMode}
+                  showPathColumn={isAllFilesView}
                 />
               ) : (
                 <div className="card p-6">

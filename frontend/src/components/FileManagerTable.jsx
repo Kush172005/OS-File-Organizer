@@ -16,6 +16,7 @@ export default function FileManagerTable({
   onCopy,
   deletingFile,
   inSearchMode,
+  showPathColumn = false,
 }) {
   const [renaming, setRenaming] = useState(null);
   const [renameValue, setRenameValue] = useState("");
@@ -48,6 +49,7 @@ export default function FileManagerTable({
         <thead>
           <tr className="bg-gray-50 border-b border-gray-200">
             <th className="text-left py-3 px-4 font-semibold text-gray-700">Name</th>
+            {showPathColumn && <th className="text-left py-3 px-4 font-semibold text-gray-700 w-32">Location</th>}
             <th className="text-left py-3 px-4 font-semibold text-gray-700 w-28">Type</th>
             <th className="text-left py-3 px-4 font-semibold text-gray-700 w-24">Size</th>
             <th className="text-left py-3 px-4 font-semibold text-gray-700 w-40">Modified</th>
@@ -71,6 +73,7 @@ export default function FileManagerTable({
                   {f.name}
                 </button>
               </td>
+              {showPathColumn && <td className="py-2.5 px-4 text-gray-500 text-xs">—</td>}
               <td className="py-2.5 px-4 text-gray-600">
                 {f.fileCount != null ? `${f.fileCount} item${f.fileCount !== 1 ? "s" : ""}` : "Folder"}
               </td>
@@ -94,6 +97,11 @@ export default function FileManagerTable({
                   </a>
                 </div>
               </td>
+              {showPathColumn && (
+                <td className="py-2.5 px-4 text-gray-500 text-xs truncate max-w-[120px]" title={file.relativePath || ""}>
+                  {file.relativePath && file.relativePath.includes("/") ? file.relativePath.replace(/\/[^/]+$/, "") : "—"}
+                </td>
+              )}
               <td className="py-2.5 px-4 text-gray-600">{file.category || "—"}</td>
               <td className="py-2.5 px-4 text-gray-600">{formatFileSize(file.size)}</td>
               <td className="py-2.5 px-4 text-gray-600">{formatModifiedDate(file.modifiedAt)}</td>

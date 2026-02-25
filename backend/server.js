@@ -64,6 +64,35 @@ function getCategoryForFile(fileName) {
     return DEFAULT_CATEGORY;
 }
 
+/**
+ * Returns a unique file name in the given directory.
+ * If "name.ext" exists, returns "name (1).ext", "name (2).ext", etc.
+ * Like Windows/Explorer duplicate handling.
+ */
+async function getUniqueFileName(dirPath, baseName) {
+    const ext = path.extname(baseName);
+    const base = path.basename(baseName, ext);
+    let candidate = baseName;
+    let n = 1;
+    try {
+        await fs.mkdir(dirPath, { recursive: true });
+        const fullPath = path.join(dirPath, candidate);
+        await fs.access(fullPath);
+        while (true) {
+            candidate = `${base} (${n})${ext}`;
+            const p = path.join(dirPath, candidate);
+            try {
+                await fs.access(p);
+                n++;
+            } catch {
+                return candidate;
+            }
+        }
+    } catch {
+        return baseName;
+    }
+}
+
 // Recycle Bin metadata helpers
 async function getTrashMetadata() {
     try {
@@ -80,7 +109,8 @@ async function saveTrashMetadata(metadata) {
     await fs.writeFile(TRASH_METADATA_FILE, JSON.stringify(metadata, null, 2));
 }
 
-// Storage for uploaded files (optional ?folder= subpath)
+// Storage for uploaded files (optional ?folder= subpath).
+// If a file with the same name already exists, we save as "name (1).ext", "name (2).ext", etc.
 const storage = multer.diskStorage({
     destination: async (req, file, cb) => {
         const sub = (req.query.folder || '').trim().replace(/\.\./g, '');
@@ -88,11 +118,15 @@ const storage = multer.diskStorage({
         if (sub && !path.join(UPLOAD_DIR, path.normalize(sub)).startsWith(UPLOAD_DIR)) {
             return cb(new Error('Invalid folder'));
         }
+        req._uploadDest = dir;
         await fs.mkdir(dir, { recursive: true });
         cb(null, dir);
     },
     filename: (req, file, cb) => {
-        cb(null, file.originalname);
+        const dir = req._uploadDest || UPLOAD_DIR;
+        getUniqueFileName(dir, file.originalname)
+            .then((name) => cb(null, name))
+            .catch((err) => cb(err));
     }
 });
 
@@ -187,7 +221,9 @@ app.post('/api/upload', upload.array('files'), async (req, res) => {
     }
 });
 
-// Organize files
+// Organize files: move root-level files into category folders.
+// If a file with the same name already exists in the category, use unique name (e.g. "file (1).pdf").
+// Organize can be run multiple times; new uploads in root will be organized each time.
 app.post('/api/organize', async (req, res) => {
     try {
         const uploadDir = UPLOAD_DIR;
@@ -204,26 +240,18 @@ app.post('/api/organize', async (req, res) => {
             
             await fs.mkdir(categoryPath, { recursive: true });
             
-            const destPath = path.join(categoryPath, fileName);
+            const destFileName = await getUniqueFileName(categoryPath, fileName);
+            const destPath = path.join(categoryPath, destFileName);
             
-            try {
-                await fs.access(destPath);
-                operations.push({
-                    file: fileName,
-                    category,
-                    status: 'skipped',
-                    reason: 'already exists'
-                });
-            } catch {
-                await fs.rename(sourcePath, destPath);
-                operations.push({
-                    file: fileName,
-                    category,
-                    status: 'moved',
-                    from: sourcePath,
-                    to: destPath
-                });
-            }
+            await fs.rename(sourcePath, destPath);
+            operations.push({
+                file: fileName,
+                category,
+                status: 'moved',
+                destName: destFileName,
+                from: sourcePath,
+                to: destPath
+            });
         }
         
         res.json({ success: true, operations });

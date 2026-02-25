@@ -1,3 +1,6 @@
+import { useState, useRef, useEffect } from "react";
+import { SORT_OPTIONS } from "../utils/fileUtils";
+
 export default function FileManagerToolbar({
   viewMode,
   setViewMode,
@@ -8,7 +11,24 @@ export default function FileManagerToolbar({
   searchQuery,
   onSearch,
   currentPath,
+  sortBy,
+  sortOrder,
+  onSortChange,
+  showSort,
 }) {
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (sortRef.current && !sortRef.current.contains(e.target)) setSortOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const currentSortLabel = SORT_OPTIONS.find((o) => o.by === sortBy && o.order === sortOrder)?.label || "Sort";
+
   const isInTrash = currentPath === "__trash__";
   return (
     <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-gray-50 border-t border-gray-100">
@@ -73,6 +93,42 @@ export default function FileManagerToolbar({
           />
         </div>
       </div>
+      {showSort && typeof sortBy === "string" && typeof sortOrder === "string" && onSortChange && (
+        <div className="relative" ref={sortRef}>
+          <button
+            type="button"
+            onClick={() => setSortOpen((o) => !o)}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
+          >
+            <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 6h18M7 12h10M10 18h4" />
+            </svg>
+            {currentSortLabel}
+            <svg className={`w-4 h-4 text-gray-400 transition-transform ${sortOpen ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+          {sortOpen && (
+            <div className="absolute left-0 top-full mt-1 py-1 min-w-[200px] bg-white rounded-lg border border-gray-200 shadow-lg z-50">
+              {SORT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    onSortChange(opt.by, opt.order);
+                    setSortOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                    sortBy === opt.by && sortOrder === opt.order ? "bg-indigo-50 text-indigo-700 font-medium" : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <div className="flex items-center gap-1 p-1 rounded-lg bg-gray-100">
         {[
           { id: "table", label: "Table", icon: "M4 6h16M4 10h16M4 14h16M4 18h16" },
