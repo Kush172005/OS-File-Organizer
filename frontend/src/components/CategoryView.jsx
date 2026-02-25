@@ -77,13 +77,13 @@ function CategoryView({ categories, onDelete, onMove, deletingFile }) {
   if (categoryKeys.length === 0) {
     return (
       <div className="text-center py-16">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 mb-4 shadow-sm">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-slate-700 mb-4">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-500">
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
           </svg>
         </div>
-        <h3 className="text-sm font-semibold text-gray-900 mb-1">No organized files</h3>
-        <p className="text-xs text-gray-500">Click "Organize Files" to sort by category</p>
+        <h3 className="text-sm font-semibold text-slate-200 mb-1">No organized files</h3>
+        <p className="text-xs text-slate-500">Click "Organize Files" to sort by category</p>
       </div>
     );
   }
@@ -93,14 +93,14 @@ function CategoryView({ categories, onDelete, onMove, deletingFile }) {
       {categoryKeys.map((category, idx) => {
         const catConfig = FILE_ICONS[category];
         return (
-          <div key={category} className="card p-6 animate-slideUp hover:shadow-lg transition-shadow" style={{ animationDelay: `${idx * 50}ms` }}>
-            <div className="flex items-center gap-3 mb-5 pb-4 border-b border-gray-100">
+          <div key={category} className="p-6 bg-slate-800 rounded-2xl border border-slate-700/80 animate-slideUp hover:border-slate-600 transition-shadow" style={{ animationDelay: `${idx * 50}ms` }}>
+            <div className="flex items-center gap-3 mb-5 pb-4 border-b border-slate-700">
               <div className={`flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br ${catConfig.color} shadow-sm`}>
                 {catConfig.icon}
               </div>
               <div className="flex-1">
-                <h2 className="text-base font-bold text-gray-900">{category}</h2>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <h2 className="text-base font-bold text-slate-200">{category}</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
                   {categories[category].length} file{categories[category].length !== 1 ? 's' : ''}
                 </p>
               </div>

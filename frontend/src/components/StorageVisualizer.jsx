@@ -95,10 +95,10 @@ function StorageVisualizer() {
   if (isLoading) {
     return (
       <div className="text-center py-16">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-sm mb-3">
-          <div className="animate-spin rounded-full h-6 w-6 border-2 border-[#007AFF] border-t-transparent"></div>
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-700 mb-3">
+          <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-400 border-t-transparent"></div>
         </div>
-        <p className="text-sm text-gray-500">Calculating storage...</p>
+        <p className="text-sm text-slate-400">Calculating storage...</p>
       </div>
     );
   }
@@ -106,7 +106,7 @@ function StorageVisualizer() {
   if (error) {
     return (
       <div className="text-center py-16">
-        <p className="text-sm text-red-500">{error}</p>
+        <p className="text-sm text-red-400">{error}</p>
       </div>
     );
   }
@@ -119,14 +119,14 @@ function StorageVisualizer() {
   if (sortedCategories.length === 0) {
     return (
       <div className="text-center py-16">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 mb-4 shadow-sm">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-slate-700 mb-4">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-500">
             <rect x="2" y="2" width="20" height="20" rx="3" />
             <path d="M7 10h10M7 14h6" />
           </svg>
         </div>
-        <h3 className="text-sm font-semibold text-gray-900 mb-1">No storage data</h3>
-        <p className="text-xs text-gray-500">Upload some files to see storage breakdown</p>
+        <h3 className="text-sm font-semibold text-slate-200 mb-1">No storage data</h3>
+        <p className="text-xs text-slate-500">Upload some files to see storage breakdown</p>
       </div>
     );
   }
@@ -134,7 +134,7 @@ function StorageVisualizer() {
   return (
     <div className="space-y-6 animate-slideUp">
       {/* Total storage summary */}
-      <div className="card p-5 bg-gradient-to-r from-slate-50 to-white">
+      <div className="p-5 bg-slate-800 rounded-2xl border border-slate-700/80">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-sm">
@@ -145,18 +145,18 @@ function StorageVisualizer() {
               </svg>
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-900">Total Storage</h2>
-              <p className="text-xs text-gray-500">{totalFiles} file{totalFiles !== 1 ? 's' : ''} across {sortedCategories.length} categor{sortedCategories.length !== 1 ? 'ies' : 'y'}</p>
+              <h2 className="text-base font-bold text-slate-200">Total Storage</h2>
+              <p className="text-xs text-slate-500">{totalFiles} file{totalFiles !== 1 ? 's' : ''} across {sortedCategories.length} categor{sortedCategories.length !== 1 ? 'ies' : 'y'}</p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-bold text-gray-900">{formatBytes(totalSize)}</p>
-            <p className="text-xs text-gray-500">used</p>
+            <p className="text-2xl font-bold text-slate-200">{formatBytes(totalSize)}</p>
+            <p className="text-xs text-slate-500">used</p>
           </div>
         </div>
 
         {/* Combined progress bar */}
-        <div className="h-4 rounded-full overflow-hidden flex bg-gray-100 shadow-inner">
+        <div className="h-4 rounded-full overflow-hidden flex bg-slate-700">
           {sortedCategories.map(([category, data], idx) => {
             const percentage = totalSize > 0 ? (data.size / totalSize) * 100 : 0;
             const colors = CATEGORY_COLORS[category] || CATEGORY_COLORS.Others;
@@ -184,7 +184,7 @@ function StorageVisualizer() {
             return (
               <div key={category} className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: colors.bar }} />
-                <span className="text-xs text-gray-600">{category}</span>
+                <span className="text-xs text-slate-400">{category}</span>
               </div>
             );
           })}
@@ -201,7 +201,7 @@ function StorageVisualizer() {
           return (
             <div
               key={category}
-              className="card p-4 hover:shadow-lg transition-all duration-300 cursor-default animate-scaleIn group relative overflow-hidden"
+              className="p-4 bg-slate-800 rounded-2xl border border-slate-700/80 hover:border-slate-600 transition-all duration-300 cursor-default animate-scaleIn group relative overflow-hidden"
               style={{ animationDelay: `${idx * 80}ms` }}
             >
               {/* Background decoration */}
@@ -218,8 +218,8 @@ function StorageVisualizer() {
                   {icon}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-gray-900 truncate">{category}</h3>
-                  <p className="text-xs text-gray-500">
+                  <h3 className="text-sm font-semibold text-slate-200 truncate">{category}</h3>
+                  <p className="text-xs text-slate-500">
                     {data.fileCount} file{data.fileCount !== 1 ? 's' : ''}
                   </p>
                 </div>
@@ -227,14 +227,14 @@ function StorageVisualizer() {
 
               {/* Size */}
               <div className="mb-3 relative z-10">
-                <p className="text-xl font-bold text-gray-900">{formatBytes(data.size)}</p>
+                <p className="text-xl font-bold text-slate-200">{formatBytes(data.size)}</p>
                 <p className="text-xs font-medium" style={{ color: colors.bar }}>
                   {percentage.toFixed(1)}% of total
                 </p>
               </div>
 
               {/* Progress bar */}
-              <div className="h-2 rounded-full overflow-hidden bg-gray-100 relative z-10">
+              <div className="h-2 rounded-full overflow-hidden bg-slate-700 relative z-10">
                 <div
                   className="h-full rounded-full transition-all duration-1000 ease-out"
                   style={{
@@ -250,11 +250,11 @@ function StorageVisualizer() {
       </div>
 
       {/* Detailed breakdown table */}
-      <div className="card overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-900">Detailed Breakdown</h3>
+      <div className="bg-slate-800 rounded-2xl border border-slate-700/80 overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-700">
+          <h3 className="text-sm font-semibold text-slate-200">Detailed Breakdown</h3>
         </div>
-        <div className="divide-y divide-gray-50">
+        <div className="divide-y divide-slate-700/60">
           {sortedCategories.map(([category, data], idx) => {
             const percentage = totalSize > 0 ? (data.size / totalSize) * 100 : 0;
             const colors = CATEGORY_COLORS[category] || CATEGORY_COLORS.Others;
@@ -263,7 +263,7 @@ function StorageVisualizer() {
             return (
               <div
                 key={category}
-                className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/50 transition-colors animate-slideRight"
+                className="flex items-center gap-4 px-5 py-3.5 hover:bg-slate-700/40 transition-colors animate-slideRight"
                 style={{ animationDelay: `${idx * 60}ms` }}
               >
                 <div
@@ -273,11 +273,11 @@ function StorageVisualizer() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-900">{category}</span>
-                    <span className="text-sm font-semibold text-gray-900 ml-2">{formatBytes(data.size)}</span>
+                    <span className="text-sm font-medium text-slate-200">{category}</span>
+                    <span className="text-sm font-semibold text-slate-200 ml-2">{formatBytes(data.size)}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-gray-100">
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-slate-700">
                       <div
                         className="h-full rounded-full transition-all duration-1000 ease-out"
                         style={{
@@ -287,10 +287,10 @@ function StorageVisualizer() {
                         }}
                       />
                     </div>
-                    <span className="text-xs text-gray-500 w-14 text-right flex-shrink-0">
+                    <span className="text-xs text-slate-500 w-14 text-right flex-shrink-0">
                       {percentage.toFixed(1)}%
                     </span>
-                    <span className="text-xs text-gray-400 w-12 text-right flex-shrink-0">
+                    <span className="text-xs text-slate-500 w-12 text-right flex-shrink-0">
                       {data.fileCount} file{data.fileCount !== 1 ? 's' : ''}
                     </span>
                   </div>

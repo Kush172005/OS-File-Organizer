@@ -100,19 +100,14 @@ function FileUpload({ onFilesUploaded, currentPath = "" }) {
   };
 
   return (
-    <div className="card p-6">
+    <div className="bg-slate-800 rounded-2xl border border-slate-700/80 p-6">
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`
-          border-2 border-dashed rounded-lg p-12 text-center cursor-pointer
-          transition-all duration-200
-          ${
-            isDragging
-              ? "border-[#007AFF] bg-blue-50/50"
-              : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-          }
+          border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-200
+          ${isDragging ? "border-indigo-400 bg-indigo-500/20" : "border-slate-600 hover:border-slate-500 hover:bg-slate-700/40"}
           ${uploading ? "pointer-events-none opacity-60" : ""}
         `}
         onClick={() => !uploading && fileInputRef.current?.click()}
@@ -130,37 +125,31 @@ function FileUpload({ onFilesUploaded, currentPath = "" }) {
 
         {uploading ? (
           <div className="space-y-3">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100">
-              <div className="animate-spin rounded-full h-6 w-6 border-2 border-[#007AFF] border-t-transparent"></div>
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-500/30">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-indigo-400 border-t-transparent" />
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-semibold text-slate-200">
                 Uploading {uploadCount} file{uploadCount !== 1 ? "s" : ""}
               </p>
-              <p className="text-xs text-gray-500 mt-1">Please wait...</p>
+              <p className="text-xs text-slate-500 mt-1">Please wait…</p>
             </div>
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100">
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="text-gray-600"
-              >
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-slate-700">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-400">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-900">
+              <p className="text-sm font-semibold text-slate-200">
                 {isHome ? "Select a folder to organize" : isTrash ? "Upload files to Recycle Bin" : "Upload files to this folder"}
               </p>
-              <p className="text-xs text-gray-500 mt-1">
-                {isHome ? "or drag and drop here" : "drag and drop supported"}
+              <p className="text-xs text-slate-500 mt-1">
+                {isHome ? "or drag and drop here" : "Drag and drop supported"}
               </p>
             </div>
           </div>

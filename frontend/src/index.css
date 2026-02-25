@@ -146,3 +146,18 @@
 .file-moving {
   animation: fileMove 0.4s ease-in-out;
 }
+
+/* File Manager app shell – polished file-manager look */
+.file-manager-app {
+  font-feature-settings: "ss01", "ss02", "cv01";
+}
+.file-manager-app .fm-scrollbar {
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+}
+.file-manager-app .fm-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 999px;
+}
+.file-manager-app .fm-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6);
+}

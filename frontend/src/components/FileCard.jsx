@@ -131,10 +131,10 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
 
   return (
     <div className={`relative group ${showMoveMenu ? 'z-50' : 'z-0'}`}>
-      <div className={`card p-4 transition-all duration-200 ${isDeleting ? 'opacity-40 scale-95' : 'hover:shadow-lg hover:border-gray-300 hover:-translate-y-0.5'}`}>
+      <div className={`p-4 bg-slate-800 rounded-2xl border border-slate-700/80 transition-all duration-200 ${isDeleting ? 'opacity-40 scale-95' : 'hover:border-slate-600 hover:-translate-y-0.5'}`}>
         {/* Thumbnail / Icon header */}
         <div
-          className={`w-full h-24 rounded-lg overflow-hidden ${fileConfig.bg} flex items-center justify-center mb-3 border border-gray-100 ${(isImage || isVideo) && thumbnailUrl ? 'cursor-pointer' : ''}`}
+          className={`w-full h-24 rounded-lg overflow-hidden bg-slate-700/60 flex items-center justify-center mb-3 border border-slate-600/60 ${(isImage || isVideo) && thumbnailUrl ? 'cursor-pointer' : ''}`}
           onDoubleClick={() => { if ((isImage || isVideo) && thumbnailUrl) setShowFullscreen(true); }}
           title={(isImage || isVideo) && thumbnailUrl ? 'Double-click to view fullscreen' : ''}
         >
@@ -156,7 +156,7 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
           ) : isPdf(file) && thumbnailUrl ? (
             <PdfThumbnail url={thumbnailUrl} className="w-full h-full" />
           ) : (
-            <div className="text-gray-600">
+            <div className="text-slate-400">
               {fileConfig.icon}
             </div>
           )}
@@ -164,14 +164,14 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
         
         {/* File info */}
         <div className="mb-3">
-          <h3 className="text-sm font-semibold text-gray-900 truncate mb-1.5" title={file.name}>
+          <h3 className="text-sm font-semibold text-slate-200 truncate mb-1.5" title={file.name}>
             {file.name}
           </h3>
           <div className="flex items-center gap-2 flex-wrap">
             <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r ${fileConfig.color} text-white text-xs font-medium shadow-sm`}>
               <span>{file.category}</span>
             </div>
-            <span className="text-xs text-gray-500" title="Size">
+            <span className="text-xs text-slate-500" title="Size">
               {formatFileSize(file.size)}
             </span>
           </div>
@@ -184,7 +184,7 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
             <button
               onClick={handleView}
               disabled={isDeleting}
-              className="flex-1 text-xs btn-secondary disabled:opacity-50 flex items-center justify-center gap-1.5"
+              className="flex-1 text-xs disabled:opacity-50 flex items-center justify-center gap-1.5 py-2 rounded-lg font-medium"
               style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none' }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -197,7 +197,7 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
           <button
             onClick={() => setShowMoveMenu(!showMoveMenu)}
             disabled={isDeleting}
-            className="flex-1 text-xs btn-secondary disabled:opacity-50 flex items-center justify-center gap-1.5"
+            className="flex-1 text-xs py-2 rounded-lg font-medium bg-slate-700 text-slate-200 border border-slate-600 hover:bg-slate-600 disabled:opacity-50 flex items-center justify-center gap-1.5"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="9 18 15 12 9 6"></polyline>
@@ -207,7 +207,7 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
           <button
             onClick={() => onDelete(file.name)}
             disabled={isDeleting}
-            className="flex-1 text-xs btn-danger disabled:opacity-50 flex items-center justify-center gap-1.5"
+            className="flex-1 text-xs py-2 rounded-lg font-medium bg-red-900/40 text-red-400 border border-red-800/60 hover:bg-red-900/60 disabled:opacity-50 flex items-center justify-center gap-1.5"
           >
             {isDeleting ? (
               <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
@@ -230,7 +230,7 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
         
         {/* Move menu dropdown */}
         {showMoveMenu && !isDeleting && (
-          <div className="absolute top-full left-0 right-0 mt-2 card p-2 z-50 shadow-xl max-h-60 overflow-y-auto animate-scaleIn">
+          <div className="absolute top-full left-0 right-0 mt-2 p-2 bg-slate-800 rounded-xl border border-slate-600 z-50 shadow-xl max-h-60 overflow-y-auto animate-scaleIn">
             {categories.map(category => {
               const catConfig = FILE_ICONS[category];
               return (
@@ -240,18 +240,18 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
                   disabled={category === file.category}
                   className={`w-full text-left px-3 py-2.5 rounded-lg text-sm flex items-center gap-2.5 transition-all ${
                     category === file.category
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'hover:bg-gray-50 text-gray-700 hover:shadow-sm'
+                      ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                      : 'hover:bg-slate-700 text-slate-200 hover:shadow-sm'
                   }`}
                 >
                   <div className="w-5 h-5 flex items-center justify-center">
-                    <div className="scale-[0.6] text-gray-600">
+                    <div className="scale-[0.6] text-slate-400">
                       {catConfig.icon}
                     </div>
                   </div>
                   <span className="flex-1 font-medium">{category}</span>
                   {category === file.category && (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-500">
                       <polyline points="20 6 9 17 4 12"></polyline>
                     </svg>
                   )}
@@ -265,12 +265,11 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
       {/* View Details Modal — rendered via portal to escape stacking context */}
       {showModal && createPortal(
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           onClick={() => setShowModal(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scaleIn"
+            className="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-scaleIn border border-slate-700"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -288,7 +287,7 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
             </div>
 
             {/* Preview Area */}
-            <div className="w-full bg-gray-950 flex items-center justify-center" style={{ maxHeight: '320px' }}>
+            <div className="w-full bg-slate-900 flex items-center justify-center" style={{ maxHeight: '320px' }}>
               {isImage && thumbnailUrl ? (
                 <img
                   src={thumbnailUrl}
@@ -310,7 +309,7 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
             <div className="px-6 py-5">
               {loadingDetails ? (
                 <div className="flex items-center justify-center py-6">
-                  <svg className="animate-spin h-6 w-6 text-gray-400" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-6 w-6 text-slate-500" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
@@ -368,7 +367,7 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
                   />
                 </div>
               ) : (
-                <p className="text-sm text-gray-500 text-center py-4">Could not load file details.</p>
+                <p className="text-sm text-slate-500 text-center py-4">Could not load file details.</p>
               )}
             </div>
           </div>
@@ -425,11 +424,11 @@ function FileCard({ file, onDelete, onMove, deletingFile }) {
 
 function DetailRow({ icon, label, value }) {
   return (
-    <div className="flex items-center gap-3 py-2 px-3 rounded-lg bg-gray-50 border border-gray-100">
-      <div className="text-gray-400 flex-shrink-0">{icon}</div>
+    <div className="flex items-center gap-3 py-2 px-3 rounded-lg bg-slate-700/50 border border-slate-600/60">
+      <div className="text-slate-500 flex-shrink-0">{icon}</div>
       <div className="min-w-0 flex-1">
-        <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">{label}</p>
-        <p className="text-sm text-gray-800 font-semibold truncate" title={value}>{value}</p>
+        <p className="text-xs text-slate-500 font-medium uppercase tracking-wider">{label}</p>
+        <p className="text-sm text-slate-200 font-semibold truncate" title={value}>{value}</p>
       </div>
     </div>
   );

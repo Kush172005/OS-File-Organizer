@@ -5,7 +5,7 @@ export default function Breadcrumbs({ currentPath, onNavigate }) {
       <button
         type="button"
         onClick={() => onNavigate("")}
-        className="px-2 py-1 rounded hover:bg-gray-100 text-gray-600 hover:text-gray-900 font-medium"
+        className="px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/60 font-medium transition-colors"
       >
         Home
       </button>
@@ -14,11 +14,11 @@ export default function Breadcrumbs({ currentPath, onNavigate }) {
         const label = name === "__all__" ? "All files" : name;
         return (
           <span key={path} className="flex items-center gap-1">
-            <span className="text-gray-400">/</span>
+            <span className="text-slate-600">/</span>
             <button
               type="button"
               onClick={() => onNavigate(path)}
-              className="px-2 py-1 rounded hover:bg-gray-100 text-gray-600 hover:text-gray-900 font-medium truncate max-w-[120px]"
+              className="px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700/60 font-medium truncate max-w-[140px] transition-colors"
             >
               {label}
             </button>

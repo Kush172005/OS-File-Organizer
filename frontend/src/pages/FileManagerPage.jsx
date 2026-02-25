@@ -261,20 +261,18 @@ export default function FileManagerPage() {
     : sortFoldersAndFiles(rawFolders, rawFiles, sortBy, sortOrder);
 
   return (
-    <div className="min-h-screen bg-[#f0f2f5] flex flex-col">
-      {/* Top bar */}
-      <header className="bg-white border-b border-gray-200 shadow-sm flex-shrink-0">
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-4">
-            <Link to="/" className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
-              <img src="/favicon.svg" alt="" className="w-8 h-8 rounded-lg flex-shrink-0" />
-              <span className="font-semibold">File Organizer</span>
+    <div className="file-manager-app min-h-screen bg-slate-900 flex flex-col">
+      <header className="flex-shrink-0 bg-slate-800/95 backdrop-blur-xl border-b border-slate-700/80">
+        <div className="flex items-center justify-between px-5 py-3">
+          <div className="flex items-center gap-5">
+            <Link to="/" className="flex items-center gap-2.5 text-slate-200 hover:text-white transition-colors rounded-lg px-2 py-1 -ml-1">
+              <img src="/favicon.svg" alt="" className="w-9 h-9 rounded-xl flex-shrink-0 ring-1 ring-slate-600/80" />
+              <span className="font-semibold text-white tracking-tight">File Organizer</span>
             </Link>
+            <div className="h-5 w-px bg-slate-600" aria-hidden />
             <Breadcrumbs currentPath={currentPath} onNavigate={setCurrentPath} />
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <span>Team Mavericks</span>
-          </div>
+          <span className="text-xs font-medium text-slate-500 tracking-wide">Team Mavericks</span>
         </div>
         <FileManagerToolbar
           viewMode={viewMode}
@@ -305,17 +303,18 @@ export default function FileManagerPage() {
           onRefresh={load}
         />
 
-        <main className="flex-1 overflow-auto p-4">
+        <main className="flex-1 overflow-auto fm-scrollbar p-6 bg-slate-900">
           {showUploadZone && currentPath !== "__trash__" && (
-            <div className="mb-4">
+            <div className="mb-6">
               <FileUpload onFilesUploaded={handleFilesUploaded} currentPath={effectivePathForOps} />
-              <button type="button" onClick={() => setShowUploadZone(false)} className="mt-2 text-sm text-gray-500 hover:text-gray-700">Cancel</button>
+              <button type="button" onClick={() => setShowUploadZone(false)} className="mt-3 text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors">Cancel</button>
             </div>
           )}
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-500 border-t-transparent" />
+            <div className="flex flex-col items-center justify-center py-24 gap-4">
+              <div className="animate-spin rounded-full h-10 w-10 border-2 border-slate-600 border-t-indigo-400" />
+              <p className="text-sm text-slate-400">Loading…</p>
             </div>
           ) : currentPath === "__trash__" ? (
             <RecycleBin 
@@ -327,14 +326,14 @@ export default function FileManagerPage() {
           ) : viewMode === "storage" ? (
             <StorageVisualizer />
           ) : viewMode === "category" ? (
-            <div className="card p-6">
+            <div className="bg-slate-800 rounded-2xl border border-slate-700/80 overflow-hidden p-6">
               <CategoryView categories={categories} onDelete={(n) => handleDelete(n)} onMove={handleMove} deletingFile={deletingFile} />
             </div>
           ) : (
             <>
               {inSearchMode && (
-                <p className="text-sm text-gray-600 mb-3">
-                  Search: &quot;{searchQuery}&quot; — {Array.isArray(searchResults) ? searchResults.length : 0} results
+                <p className="text-sm text-slate-300 mb-4 font-medium">
+                  <span className="text-slate-500">Search:</span> &quot;{searchQuery}&quot; — {Array.isArray(searchResults) ? searchResults.length : 0} results
                 </p>
               )}
               {viewMode === "table" ? (
@@ -352,29 +351,30 @@ export default function FileManagerPage() {
                   showPathColumn={isAllFilesView}
                 />
               ) : (
-                <div className="card p-6">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <div className="bg-slate-800 rounded-2xl border border-slate-700/80 overflow-hidden p-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
                     {displayFolders.map((f) => (
-                      <div
+                      <button
                         key={f.relativePath}
+                        type="button"
                         onClick={() => {
                           setCurrentPath(f.relativePath);
                           if (inSearchMode) { setSearchQuery(""); setSearchResults(null); }
                         }}
-                        className="flex flex-col items-center p-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 cursor-pointer"
+                        className="flex flex-col items-center p-5 rounded-2xl border border-slate-600/60 bg-slate-700/40 hover:bg-slate-700/80 hover:border-indigo-500/40 cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
                       >
-                        <div className="w-14 h-14 rounded-xl bg-amber-100 flex items-center justify-center mb-2">
-                          <svg className="w-7 h-7 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <div className="w-16 h-16 rounded-2xl bg-amber-500/20 flex items-center justify-center mb-3 ring-1 ring-amber-400/30">
+                          <svg className="w-8 h-8 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                           </svg>
                         </div>
-                        <span className="text-sm font-medium text-gray-900 truncate w-full text-center">{f.name}</span>
-                        <span className="text-xs text-gray-500 mt-0.5 text-center">
+                        <span className="text-sm font-semibold text-slate-200 truncate w-full text-center">{f.name}</span>
+                        <span className="text-xs text-slate-500 mt-1 text-center">
                           {f.fileCount != null ? `${f.fileCount} item${f.fileCount !== 1 ? "s" : ""}` : ""}
                           {f.fileCount != null && f.totalSize != null ? " · " : ""}
                           {f.totalSize != null ? formatFileSize(f.totalSize) : ""}
                         </span>
-                      </div>
+                      </button>
                     ))}
                     {displayFiles.map((file) => (
                       <FileCardGridItem
@@ -401,17 +401,17 @@ function FileCardGridItem({ file, onDelete, onMove, deletingFile }) {
   const url = file.relativePath ? `${API_URL}/uploads/${encodeURI(file.relativePath)}` : null;
   const isDeleting = deletingFile === file.name;
   return (
-    <div className={`flex flex-col rounded-xl border border-gray-200 bg-white overflow-hidden hover:shadow-md transition-shadow ${isDeleting ? "opacity-50" : ""}`}>
-      <a href={url} target="_blank" rel="noopener noreferrer" className="flex flex-col flex-1 p-3">
-        <div className="w-full aspect-square rounded-lg bg-gray-100 flex items-center justify-center mb-2 overflow-hidden">
-          <FilePreview file={file} size="fill" className="rounded-lg" />
+    <div className={`flex flex-col rounded-2xl border border-slate-600/60 bg-slate-800 overflow-hidden hover:border-slate-500/80 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl ${isDeleting ? "opacity-50 pointer-events-none" : ""}`}>
+      <a href={url} target="_blank" rel="noopener noreferrer" className="flex flex-col flex-1 p-4 group">
+        <div className="w-full aspect-square rounded-xl bg-slate-700/60 flex items-center justify-center mb-3 overflow-hidden ring-1 ring-slate-600/50 group-hover:ring-indigo-500/40 transition-shadow">
+          <FilePreview file={file} size="fill" className="rounded-xl" />
         </div>
-        <span className="text-sm font-medium text-gray-900 truncate">{file.name}</span>
-        <span className="text-xs text-gray-500 mt-0.5">{formatFileSize(file.size)}</span>
+        <span className="text-sm font-semibold text-slate-200 truncate group-hover:text-indigo-400 transition-colors">{file.name}</span>
+        <span className="text-xs text-slate-500 mt-0.5">{formatFileSize(file.size)}</span>
       </a>
-      <div className="flex gap-1 p-2 border-t border-gray-100">
-        <button type="button" onClick={() => onMove(file.name, prompt("Target category (e.g. Documents):") || "", file.relativePath)} className="flex-1 text-xs py-1.5 rounded bg-gray-100 hover:bg-gray-200" title="Move">Move</button>
-        <button type="button" onClick={() => onDelete(file.name, file.relativePath)} disabled={isDeleting} className="flex-1 text-xs py-1.5 rounded bg-red-50 text-red-600 hover:bg-red-100" title="Delete">Delete</button>
+      <div className="flex gap-2 p-3 border-t border-slate-700 bg-slate-800/80">
+        <button type="button" onClick={() => onMove(file.name, prompt("Target category (e.g. Documents):") || "", file.relativePath)} className="flex-1 text-xs py-2 rounded-lg font-medium bg-slate-700 text-slate-200 hover:bg-slate-600 border border-slate-600 transition-colors" title="Move">Move</button>
+        <button type="button" onClick={() => onDelete(file.name, file.relativePath)} disabled={isDeleting} className="flex-1 text-xs py-2 rounded-lg font-medium bg-red-900/40 text-red-400 hover:bg-red-900/60 border border-red-800/60 transition-colors" title="Delete">Delete</button>
       </div>
     </div>
   );
