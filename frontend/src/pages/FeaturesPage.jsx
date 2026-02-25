@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 const FEATURES = [
   {
     title: "Upload & Browse",
-    description: "Upload files or entire folders. Browse the directory tree like a real file manager. Uploads can target a specific folder.",
-    osConcept: "Demonstrates readdir(), mkdir(), and path resolution — how the OS organizes files in a hierarchy.",
+    what: "Upload files or folders into the current directory. Use the sidebar and breadcrumbs to move around. Path is always relative to the app root.",
+    os: "readdir(), mkdir(), path resolution. Backend normalizes paths and blocks traversal outside the root.",
     icon: (
       <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -14,9 +14,9 @@ const FEATURES = [
     ),
   },
   {
-    title: "Auto-Categorize by Type",
-    description: "Files are classified by extension (Documents, Images, Audio, Video, Code, Archives). One-click organize moves files into category folders.",
-    osConcept: "Uses file metadata (extension) and rename() — how the OS identifies file types and moves data on disk.",
+    title: "Organize by Type",
+    what: "Click Organize on the root. Files are grouped by extension into folders: Documents, Images, Audio, Video, Code, Archives, Others.",
+    os: "readdir(root), then for each file: get category from extension, mkdir(category) if needed, rename(file, category/file). Same as atomic move on disk.",
     icon: (
       <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
@@ -25,9 +25,9 @@ const FEATURES = [
     ),
   },
   {
-    title: "Create, Rename, Copy, Delete",
-    description: "Create new folders, rename files or folders, copy files to another folder, delete files. Empty folders can be removed.",
-    osConcept: "Maps to mkdir(), rename(), copyFile(), unlink(), rmdir() — core OS file system operations.",
+    title: "Create, Rename, Copy, Move, Delete",
+    what: "New folder: button in toolbar. Rename/copy/move/delete via row actions or right-click. Empty folders can be deleted.",
+    os: "mkdir(), rename(), fs.copyFileSync(), unlink(), rmdir(). Delete folder uses readdir to confirm empty before rmdir.",
     icon: (
       <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -37,8 +37,8 @@ const FEATURES = [
   },
   {
     title: "Search",
-    description: "Search files and folders by name across the entire tree. Results show location and type.",
-    osConcept: "Directory traversal and string matching — how tools like find() walk the file system.",
+    what: "Search box in the file manager. Matches file and folder names under the root. Results show path and type.",
+    os: "Recursive readdir and name matching. Same idea as walking the tree with opendir/readdir.",
     icon: (
       <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <circle cx="11" cy="11" r="8" />
@@ -48,8 +48,8 @@ const FEATURES = [
   },
   {
     title: "Storage View",
-    description: "See storage usage per category: total size, file count, and percentage. Visual breakdown of how space is used.",
-    osConcept: "Uses stat() for size and aggregates by category — how the OS reports disk usage and metadata.",
+    what: "Sidebar shows total size and per-category breakdown (size, file count, %). Same categories as Organize.",
+    os: "readdir + stat() over the tree; sum size by category. Like du per directory.",
     icon: (
       <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
@@ -60,12 +60,24 @@ const FEATURES = [
   },
   {
     title: "File Details & Preview",
-    description: "View file metadata (size, created, modified, type). Preview images and videos in-app.",
-    osConcept: "Demonstrates stat() (birthtime, mtime, size) — how the OS stores and serves file attributes.",
+    what: "Table shows size and modified time. Click a file to see details; images, video, and PDF open in-app preview.",
+    os: "stat() for size, mtime, birthtime. Preview is just streaming the file; no extra OS calls.",
     icon: (
       <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
         <circle cx="12" cy="12" r="3" />
+      </svg>
+    ),
+  },
+  {
+    title: "Download (Save to Disk)",
+    what: "Download button on files. Browser gets the file with Content-Disposition: attachment so it saves instead of opening in a new tab.",
+    os: "Path check, stat() to confirm it's a file, then createReadStream() and pipe to response. OS read in chunks.",
+    icon: (
+      <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="7 10 12 15 17 10" />
+        <line x1="12" y1="15" x2="12" y2="3" />
       </svg>
     ),
   },
@@ -88,14 +100,13 @@ export default function FeaturesPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-16">
-        <p className="text-indigo-400 font-medium text-sm tracking-wide uppercase mb-2">What it does</p>
-        <h1 className="text-4xl font-bold tracking-tight mb-4">Features & OS Concepts</h1>
-        <p className="text-white/60 text-lg mb-14">
-          Every feature is tied to how operating systems handle file storage and categorization. Use this to explain the "why" in your evaluation.
+        <h1 className="text-4xl font-bold tracking-tight mb-3">How It Works</h1>
+        <p className="text-white/60 text-lg mb-12">
+          What you can do in the app and how it works under the hood. The backend uses Node.js (fs, path); all paths stay inside a single root.
         </p>
 
-        <div className="space-y-10">
-          {FEATURES.map((f, i) => (
+        <div className="space-y-8">
+          {FEATURES.map((f) => (
             <div
               key={f.title}
               className="rounded-2xl border border-white/10 bg-white/5 p-6 md:p-8 hover:bg-white/[0.07] transition-colors"
@@ -106,10 +117,10 @@ export default function FeaturesPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <h2 className="text-xl font-semibold text-white mb-2">{f.title}</h2>
-                  <p className="text-white/70 mb-4">{f.description}</p>
+                  <p className="text-white/70 mb-3">{f.what}</p>
                   <div className="rounded-lg bg-indigo-500/10 border border-indigo-500/20 px-4 py-3">
-                    <p className="text-xs font-medium text-indigo-300 uppercase tracking-wider mb-1">OS concept</p>
-                    <p className="text-sm text-white/80">{f.osConcept}</p>
+                    <p className="text-xs font-medium text-indigo-300 uppercase tracking-wider mb-1">OS / Node</p>
+                    <p className="text-sm text-white/80 font-mono">{f.os}</p>
                   </div>
                 </div>
               </div>
@@ -117,7 +128,18 @@ export default function FeaturesPage() {
           ))}
         </div>
 
-        <div className="mt-16 text-center">
+        <div className="mt-14 p-6 rounded-2xl border border-white/10 bg-white/5">
+          <h2 className="text-lg font-semibold text-white mb-2">What you can do</h2>
+          <ul className="text-sm text-white/70 space-y-1 list-disc list-inside">
+            <li>Upload files or folders and browse with the sidebar and breadcrumbs.</li>
+            <li>Organize files by type into category folders (Documents, Images, etc.).</li>
+            <li>Create folders, rename or copy files, move and delete files or empty folders.</li>
+            <li>Search by name; see storage usage per category in the sidebar.</li>
+            <li>Preview images, video, and PDF; download any file to save it to disk.</li>
+          </ul>
+        </div>
+
+        <div className="mt-12 text-center">
           <Link
             to="/app"
             className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-white font-semibold shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/40 transition-all"
