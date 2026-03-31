@@ -10,12 +10,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 // Use /tmp on Vercel (read-only filesystem), local path otherwise
-const UPLOAD_DIR = process.env.VERCEL
+const UPLOAD_DIR = process.env.UPLOAD_PATH || (process.env.VERCEL
     ? path.join('/tmp', 'uploads')
-    : path.join(__dirname, 'uploads');
+    : path.join(__dirname, 'uploads'));
 const TRASH_DIR = path.join(UPLOAD_DIR, '.trash');
 const TRASH_METADATA_FILE = path.join(TRASH_DIR, 'metadata.json');
 
