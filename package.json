@@ -1,0 +1,12 @@
+{
+  "name": "os-file-organizer-monorepo",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "start-backend": "cd backend && npm start",
+    "start-frontend": "cd frontend && npm start"
+  }
+}
