@@ -5,7 +5,9 @@
     "backend",
     "frontend"
   ],
+  "main": "backend/server.js",
   "scripts": {
+    "start": "npm run start-backend",
     "start-backend": "cd backend && npm start",
     "start-frontend": "cd frontend && npm start"
   }
